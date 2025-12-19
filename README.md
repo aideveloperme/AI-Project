@@ -9,17 +9,17 @@ Highlights: Demonstrates edge detection, Hough transforms, and lane-line trackin
 
 ICH_CNN_(2).ipynb
 Description: Intracerebral Hemorrhage detection using Convolutional Neural Networks (CNNs).
-Tech Stack: TensorFlow/Keras, Python, CNNs
-Highlights: Binary/multi-class classification with model evaluation metrics (accuracy, loss curves, confusion matrix).
+Tech Stack: TensorFlow,Keras, Python, CNNs
+Highlights: Binary class classification with model evaluation metrics (accuracy, loss curves, confusion matrix).
 
 News_Classification.ipynb
 Description: Text classification of news articles using NLP techniques.
 Tech Stack: Python, Pandas, Scikit-learn, NLP preprocessing
-Highlights: Implements tokenization, vectorization, and classification models (e.g., Naive Bayes, SVM).
+Highlights: Implements tokenization, vectorization, and classification models ( Naive Bayes, SVM).
 
 trafficsign_classification.ipynb
 Description: Classification of traffic signs using CNN models.
-Tech Stack: Python, TensorFlow/Keras, CNNs
+Tech Stack: Python, TensorFlow, Keras, CNNs
 Highlights: Image preprocessing, model training, and evaluation with high accuracy on test dataset.
 
 How to Run
@@ -32,6 +32,3 @@ Hands-on experience with CNN architectures for image classification.
 NLP techniques for text preprocessing and classification.
 Data visualization and performance evaluation of models.
 Understanding preprocessing pipelines for images and text.
-
-
-\apple fund 
