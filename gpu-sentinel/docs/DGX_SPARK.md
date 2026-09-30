@@ -37,3 +37,14 @@ historical baseline and rate of change. Throughput, straggler and NCCL diagnosis
 **GB10 caveats (unverified on hardware).** The GPU uses unified LPDDR5x memory, so DCGM may not report the
 framebuffer, memory temperature or ECC fields. If dcgm-exporter exits on an unsupported field, delete that
 line from `deploy/spark/dcgm-counters.csv` and restart it.
+
+## Troubleshooting
+
+* **`Bind for :::8080 failed: port is already allocated`**: the demo stack is still running.
+  Run `docker compose down` (demo) first, or start the Spark stack on another port:
+  `SENTINEL_PORT=8081 docker compose -f docker-compose.spark.yml up -d`.
+* **`Not collecting DCP metrics`** in the dcgm-exporter log: profiling metrics (SM activity,
+  tensor activity, DRAM bandwidth, PCIe bytes) aren't available. GPU Sentinel still works from
+  utilization, clocks, temperature, power, throttle reasons, XID and host metrics; those panels show "—".
+* Check that the GPU is being scraped:
+  `docker compose -f docker-compose.spark.yml exec prometheus wget -qO- 'http://localhost:9090/api/v1/query?query=DCGM_FI_DEV_GPU_TEMP'`

@@ -1,6 +1,8 @@
 # DCGM fields GPU Sentinel queries. If dcgm-exporter refuses to start on your
 # driver/GPU, delete the lines it reports as unsupported (unified-memory GPUs
 # such as GB10 may not expose framebuffer, HBM temperature or ECC fields).
+# DCGM_FI_PROF_* (profiling) fields need the DCGM profiling module; on DGX Spark
+# with dcgm-exporter 4.2.x they are skipped ("metric not enabled"), which is harmless.
 # Format: DCGM field, Prometheus type, help
 DCGM_FI_DEV_GPU_UTIL, gauge, GPU utilization (in %).
 DCGM_FI_DEV_SM_CLOCK, gauge, SM clock frequency (in MHz).

@@ -7,10 +7,12 @@ services:
   dcgm-exporter:
     # Pick the newest arm64-capable tag from NGC: nvcr.io/nvidia/k8s/dcgm-exporter
     image: ${DCGM_EXPORTER_IMAGE:-nvcr.io/nvidia/k8s/dcgm-exporter:4.2.3-4.1.3-ubuntu22.04}
-    command: ["dcgm-exporter", "-f", "/etc/dcgm-exporter/sentinel.csv"]
     cap_add: [SYS_ADMIN]            # needed for DCGM profiling (DCP) metrics
+    environment:
+      DCGM_EXPORTER_COLLECTORS: /etc/dcgm-exporter/default-counters.csv
     volumes:
-      - ./deploy/spark/dcgm-counters.csv:/etc/dcgm-exporter/sentinel.csv:ro
+      # Mounted over the default path: dcgm-exporter falls back to this file anyway.
+      - ./deploy/spark/dcgm-counters.csv:/etc/dcgm-exporter/default-counters.csv:ro
     deploy:
       resources:
         reservations:
