@@ -101,3 +101,26 @@ def test_notification_channel_secrets_encrypted(client, admin):
     client.post("/api/v1/notification-channels", headers=admin, json={"name": "slack", "type": "slack", "config": {"url": "https://hooks.slack.com/x"}})
     sid = [c for c in client.get("/api/v1/notification-channels", headers=admin).json() if c["type"] == "slack"][0]["id"]
     assert client.post(f"/api/v1/notification-channels/{sid}/test", headers=admin).json()["ok"] is False
+
+
+def test_manage_cli_reset_and_create(settings, monkeypatch, capsys):
+    from sentinel import manage
+    from sentinel.app import bootstrap
+    from sentinel.auth.security import verify_password
+    from sentinel.db import Database, User
+    monkeypatch.setattr(manage, "get_settings", lambda: settings)
+    db = Database(settings.database_url)
+    db.init()
+    bootstrap(settings, db)
+    manage.main(["reset-password", "admin", "--password", "a-new-long-password"])
+    manage.main(["create-user", "ops1", "operator", "--password", "another-long-pass"])
+    manage.main(["list-users"])
+    with db.session() as s:
+        admin = s.query(User).filter_by(username="admin").one()
+        assert verify_password("a-new-long-password", admin.password_hash)
+        assert s.query(User).filter_by(username="ops1").one().role == "operator"
+    assert "ops1" in capsys.readouterr().out
+
+
+def test_auth_info_is_public(client):
+    assert client.get("/api/v1/auth/info").json() == {"demo_mode": True}

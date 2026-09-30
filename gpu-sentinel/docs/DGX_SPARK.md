@@ -48,3 +48,16 @@ line from `deploy/spark/dcgm-counters.csv` and restart it.
   utilization, clocks, temperature, power, throttle reasons, XID and host metrics; those panels show "—".
 * Check that the GPU is being scraped:
   `docker compose -f docker-compose.spark.yml exec prometheus wget -qO- 'http://localhost:9090/api/v1/query?query=DCGM_FI_DEV_GPU_TEMP'`
+
+## Logging in
+
+The Spark stack runs with demo mode off, so only the `admin` user exists (no `operator`/`viewer`).
+Its password is `SENTINEL_ADMIN_PASSWORD` from `.env` if you created one (the example file sets
+`change-me-too`), otherwise `sentinel-admin`. It is only applied when the database is first created.
+
+Reset it, or add users, from the server:
+```bash
+docker compose -f docker-compose.spark.yml exec backend python -m sentinel.manage reset-password admin
+docker compose -f docker-compose.spark.yml exec backend python -m sentinel.manage create-user alice operator
+docker compose -f docker-compose.spark.yml exec backend python -m sentinel.manage list-users
+```

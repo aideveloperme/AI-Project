@@ -60,6 +60,12 @@ def login(body: Login, request: Request, c=Depends(ctx)) -> dict:
                 "user": {"username": u.username, "role": u.role, "tenant": u.tenant_id}}
 
 
+@router.get("/auth/info", tags=["auth"])
+def auth_info(c=Depends(ctx)) -> dict:
+    """Public: lets the login page decide whether to show the demo accounts."""
+    return {"demo_mode": c.settings.demo_mode}
+
+
 @router.get("/auth/me", tags=["auth"])
 def me(p: Principal = Depends(current_user)) -> dict:
     return {"username": p.username, "role": p.role, "tenant": p.tenant, "via": p.via}

@@ -1,12 +1,14 @@
 "use client";
-import { useState } from "react";
-import { post, setSession } from "@/lib/api";
+import { useEffect, useState } from "react";
+import { api, post, setSession } from "@/lib/api";
 
 export default function Login() {
   const [username, setU] = useState("admin");
   const [password, setP] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [demo, setDemo] = useState(false);
+  useEffect(() => { api<any>("/auth/info").then((r) => setDemo(r.demo_mode)).catch(() => {}); }, []);
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
@@ -29,7 +31,11 @@ export default function Login() {
         <label className="field">Password<input type="password" value={password} onChange={(e) => setP(e.target.value)} autoComplete="current-password" required /></label>
         {err && <div className="err small">{err}</div>}
         <button className="primary" disabled={busy}>{busy ? "Signing in…" : "Sign in"}</button>
-        <div className="muted small">Demo accounts: admin / sentinel-admin · operator / sentinel-operator · viewer / sentinel-viewer</div>
+        {demo ? (
+          <div className="muted small">Demo accounts: admin / sentinel-admin · operator / sentinel-operator · viewer / sentinel-viewer</div>
+        ) : (
+          <div className="muted small">Forgot the admin password? On the server run:<br /><code>docker compose exec backend python -m sentinel.manage reset-password admin</code></div>
+        )}
       </form>
     </div>
   );
