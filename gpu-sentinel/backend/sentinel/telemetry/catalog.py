@@ -124,6 +124,10 @@ GPU_HARDWARE: dict[str, dict[str, float]] = {
     "NVIDIA H100 80GB HBM3": {"hbm_peak_gbps": 3350, "max_sm_clock": 1980, "mem_clock": 2619, "tdp_w": 700, "nvlink_peak_gbps": 450},
     "NVIDIA A100-SXM4-80GB": {"hbm_peak_gbps": 2039, "max_sm_clock": 1410, "mem_clock": 1593, "tdp_w": 400, "nvlink_peak_gbps": 300},
     "NVIDIA L40S": {"hbm_peak_gbps": 864, "max_sm_clock": 2520, "mem_clock": 9001, "tdp_w": 350, "nvlink_peak_gbps": 0},
+    # DGX Spark (GB10 Grace Blackwell): 128 GB unified LPDDR5x at 273 GB/s shared with the CPU.
+    # The Prometheus collector only uses hbm_peak_gbps (DRAM_ACTIVE → GB/s); the other
+    # values are used by the simulator and are approximate.
+    "NVIDIA GB10": {"hbm_peak_gbps": 273, "max_sm_clock": 3000, "mem_clock": 4266, "tdp_w": 140, "nvlink_peak_gbps": 0},
 }
 DEFAULT_HARDWARE = GPU_HARDWARE["NVIDIA H100 80GB HBM3"]
 

@@ -1,0 +1,29 @@
+# Running GPU Sentinel on a single DGX Spark
+
+DGX Spark ships with DGX OS (Ubuntu, **arm64**), Docker and the NVIDIA Container Toolkit.
+All GPU Sentinel images build or pull for arm64.
+
+## Option A — simulated 12-node cluster (full product, demo)
+```bash
+git clone -b claude/gpu-sentinel-ai-mvp-kng07y https://github.com/aideveloperme/AI-Project.git
+cd AI-Project/gpu-sentinel
+docker compose up -d --build                  # add: --profile llm  for a local LLM on the Spark GPU
+# browse http://<spark-ip>:8080   admin / sentinel-admin
+```
+
+## Option B — monitor the Spark's own GPU
+```bash
+docker compose -f docker-compose.spark.yml up -d --build
+docker compose -f docker-compose.spark.yml logs -f dcgm-exporter   # check it started
+curl -s localhost:9100/metrics | head                              # node_exporter
+```
+Wait about 10 minutes for baselines to build (historical baseline: 60 samples), then run a real workload.
+
+**Single-GPU limits.** Peer benchmarking needs at least 3 comparable GPUs, so one Spark gets **no** peer comparison
+and no "X% below peers" headline. Detection relies on static thresholds, rolling z-score, the GPU's own
+historical baseline and rate of change. Throughput, straggler and NCCL diagnosis also need the
+`sentinel_workload_*` / `sentinel_nccl_*` metrics from your training code (not exported by default).
+
+**GB10 caveats (unverified on hardware).** The GPU uses unified LPDDR5x memory, so DCGM may not report the
+framebuffer, memory temperature or ECC fields. If dcgm-exporter exits on an unsupported field, delete that
+line from `deploy/spark/dcgm-counters.csv` and restart it.

@@ -1,0 +1,74 @@
+# GPU Sentinel on a single DGX Spark, monitoring the REAL GPU (no simulator).
+#   docker compose -f docker-compose.spark.yml up -d --build   → http://<spark>:8080
+# For the simulated 12-node demo, use docker-compose.yml instead.
+name: gpu-sentinel-spark
+
+services:
+  dcgm-exporter:
+    # Pick the newest arm64-capable tag from NGC: nvcr.io/nvidia/k8s/dcgm-exporter
+    image: ${DCGM_EXPORTER_IMAGE:-nvcr.io/nvidia/k8s/dcgm-exporter:4.2.3-4.1.3-ubuntu22.04}
+    command: ["dcgm-exporter", "-f", "/etc/dcgm-exporter/sentinel.csv"]
+    cap_add: [SYS_ADMIN]            # needed for DCGM profiling (DCP) metrics
+    volumes:
+      - ./deploy/spark/dcgm-counters.csv:/etc/dcgm-exporter/sentinel.csv:ro
+    deploy:
+      resources:
+        reservations:
+          devices: [{ driver: nvidia, count: all, capabilities: [gpu] }]
+    restart: unless-stopped
+
+  node-exporter:
+    image: prom/node-exporter:v1.8.2
+    command: ["--path.rootfs=/host", "--collector.infiniband"]
+    network_mode: host              # real host NIC counters, listens on :9100
+    pid: host
+    volumes: ["/:/host:ro,rslave"]
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v2.53.2
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.retention.time=7d"]
+    volumes:
+      - ./deploy/spark/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    environment:
+      SENTINEL_TELEMETRY_SOURCE: prometheus
+      SENTINEL_PROMETHEUS_URL: http://prometheus:9090
+      SENTINEL_DATABASE_URL: sqlite:////data/sentinel.db
+      SENTINEL_ANALYSIS_INTERVAL_S: "10"
+      SENTINEL_DEMO_MODE: "false"
+      SENTINEL_JWT_SECRET: ${SENTINEL_JWT_SECRET:-change-me-in-production-please-32b+}
+      SENTINEL_BOOTSTRAP_ADMIN_PASSWORD: ${SENTINEL_ADMIN_PASSWORD:-sentinel-admin}
+      SENTINEL_LLM_PROVIDER: ${SENTINEL_LLM_PROVIDER:-auto}
+      SENTINEL_LLM_URL: ${SENTINEL_LLM_URL:-http://ollama:11434}
+      SENTINEL_LLM_MODEL: ${SENTINEL_LLM_MODEL:-llama3.1:8b-instruct-q4_K_M}
+      SENTINEL_CORS_ORIGINS: http://localhost:8080
+    volumes: [sentinel-data:/data]
+    depends_on: [prometheus]
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    ports: ["${SENTINEL_PORT:-8080}:8080"]
+    depends_on: [backend]
+    restart: unless-stopped
+
+  ollama:                            # optional: docker compose -f docker-compose.spark.yml --profile llm up -d
+    image: ollama/ollama:latest
+    profiles: [llm]
+    volumes: [ollama-data:/root/.ollama]
+    deploy:
+      resources:
+        reservations:
+          devices: [{ driver: nvidia, count: all, capabilities: [gpu] }]
+    restart: unless-stopped
+
+volumes:
+  prometheus-data:
+  sentinel-data:
+  ollama-data:

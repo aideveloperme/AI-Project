@@ -1,0 +1,16 @@
+# Single-node (DGX Spark) Prometheus config. Both exporters get the same
+# static `node` label, which is what GPU Sentinel joins GPU and host metrics on.
+global:
+  scrape_interval: 10s
+scrape_configs:
+  - job_name: dcgm
+    static_configs:
+      - targets: ["dcgm-exporter:9400"]
+        labels: { node: spark-01 }
+  - job_name: node
+    static_configs:
+      - targets: ["host.docker.internal:9100"]   # node_exporter runs in the host network namespace
+        labels: { node: spark-01 }
+  - job_name: sentinel-backend
+    static_configs:
+      - targets: ["backend:8000"]

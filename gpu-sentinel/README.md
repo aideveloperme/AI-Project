@@ -16,6 +16,7 @@ contains a number or a cause that isn't in the evidence.
 
 * 📐 Architecture and all 15 design deliverables: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 * 🎤 Trade-show demo script: [docs/DEMO.md](docs/DEMO.md)
+* 🖥️ Single DGX Spark: [docs/DGX_SPARK.md](docs/DGX_SPARK.md)
 
 ## Quick start
 
