@@ -74,10 +74,15 @@ services:
     restart: unless-stopped
 
   ollama:
-    image: ollama/ollama:0.5.4
+    # Recent Ollama is required for Blackwell GPUs (e.g. DGX Spark GB10).
+    image: ${OLLAMA_IMAGE:-ollama/ollama:latest}
     profiles: [llm]
     volumes: [ollama-data:/root/.ollama]
     networks: [llm]
+    deploy:
+      resources:
+        reservations:
+          devices: [{ driver: nvidia, count: all, capabilities: [gpu] }]
     restart: unless-stopped
 
 # Network isolation: the database is reachable only from the backend; the

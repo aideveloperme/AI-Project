@@ -7,9 +7,19 @@ All GPU Sentinel images build or pull for arm64.
 ```bash
 git clone -b claude/gpu-sentinel-ai-mvp-kng07y https://github.com/aideveloperme/AI-Project.git
 cd AI-Project/gpu-sentinel
-docker compose up -d --build                  # add: --profile llm  for a local LLM on the Spark GPU
+docker compose up -d --build
 # browse http://<spark-ip>:8080   admin / sentinel-admin
 ```
+
+Optional local LLM (runs on the Spark GPU). The `ollama` service is behind the `llm` profile, so
+start it explicitly, pull a model, then restart the backend: the backend picks its LLM at startup.
+```bash
+docker compose --profile llm up -d ollama
+docker compose exec ollama ollama pull llama3.1:8b-instruct-q4_K_M
+docker compose restart backend
+docker compose logs backend | grep "GPU Sentinel"      # should show llm=ollama:llama3.1:...
+```
+(With `docker-compose.spark.yml`, add `-f docker-compose.spark.yml` to every command above.)
 
 ## Option B — monitor the Spark's own GPU
 ```bash
