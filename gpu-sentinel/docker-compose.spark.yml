@@ -60,6 +60,23 @@ services:
     depends_on: [backend]
     restart: unless-stopped
 
+  workload:                          # optional: docker compose -f docker-compose.spark.yml --profile workload up -d
+    # NVIDIA's PyTorch container (arm64 + Blackwell). Use the newest tag from NGC if this one is missing.
+    image: ${PYTORCH_IMAGE:-nvcr.io/nvidia/pytorch:25.09-py3}
+    profiles: [workload]
+    command: ["python", "/workloads/train_gpt.py", "--size", "${WORKLOAD_SIZE:-medium}", "--batch", "${WORKLOAD_BATCH:-16}"]
+    environment:
+      SENTINEL_NODE: spark-01
+      SENTINEL_JOB_ID: spark-train-1
+    volumes: ["./workloads:/workloads:ro"]
+    ipc: host
+    ulimits: { memlock: -1, stack: 67108864 }
+    deploy:
+      resources:
+        reservations:
+          devices: [{ driver: nvidia, count: all, capabilities: [gpu] }]
+    restart: unless-stopped
+
   ollama:                            # optional: docker compose -f docker-compose.spark.yml --profile llm up -d
     image: ollama/ollama:latest
     profiles: [llm]

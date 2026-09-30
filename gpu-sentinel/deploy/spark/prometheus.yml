@@ -11,6 +11,10 @@ scrape_configs:
     static_configs:
       - targets: ["host.docker.internal:9100"]   # node_exporter runs in the host network namespace
         labels: { node: spark-01 }
+  - job_name: workload            # workloads/train_gpt.py (only while it runs)
+    static_configs:
+      - targets: ["workload:9500"]
+        labels: { node: spark-01 }
   - job_name: sentinel-backend
     static_configs:
       - targets: ["backend:8000"]

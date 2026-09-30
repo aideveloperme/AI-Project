@@ -61,3 +61,16 @@ docker compose -f docker-compose.spark.yml exec backend python -m sentinel.manag
 docker compose -f docker-compose.spark.yml exec backend python -m sentinel.manage create-user alice operator
 docker compose -f docker-compose.spark.yml exec backend python -m sentinel.manage list-users
 ```
+
+## A workload that keeps the GPU busy
+
+`workloads/train_gpt.py` trains a GPT-style model (bf16, synthetic tokens generated on the GPU) and
+exports `sentinel_workload_*` metrics, so GPU Sentinel shows **tokens/s and step time** for the Spark.
+```bash
+docker compose -f docker-compose.spark.yml --profile workload up -d workload
+docker compose -f docker-compose.spark.yml logs -f workload        # "[train] step … tok/s"
+docker compose -f docker-compose.spark.yml stop workload           # stop it
+```
+Bigger model / batch: `WORKLOAD_SIZE=large WORKLOAD_BATCH=32 docker compose -f docker-compose.spark.yml --profile workload up -d workload`
+(sizes: small, medium, large). If the batch doesn't fit in memory, lower `WORKLOAD_BATCH`.
+If the `nvcr.io/nvidia/pytorch` tag isn't found, set `PYTORCH_IMAGE` to the newest tag listed on NGC.
