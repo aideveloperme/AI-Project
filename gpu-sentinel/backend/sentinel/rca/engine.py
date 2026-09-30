@@ -13,8 +13,8 @@ Labels: high ≥ 0.75, medium ≥ 0.5, else low. Only hardware-counter evidence
 """
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import asdict, dataclass, field
-from typing import Callable
 
 from sentinel.analytics.detectors import SEV_ORDER, AnomalySignal
 from sentinel.analytics.peers import PeerComparison

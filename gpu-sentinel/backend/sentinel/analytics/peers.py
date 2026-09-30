@@ -31,7 +31,7 @@ class PeerStats:
     max: float
 
     @classmethod
-    def of(cls, values: np.ndarray) -> "PeerStats":
+    def of(cls, values: np.ndarray) -> PeerStats:
         med = float(np.median(values))
         return cls(n=int(values.size), median=med, mean=float(values.mean()), p10=float(np.percentile(values, 10)),
                    p90=float(np.percentile(values, 90)), mad=float(np.median(np.abs(values - med))),

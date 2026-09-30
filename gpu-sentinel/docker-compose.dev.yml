@@ -1,0 +1,14 @@
+# Lightweight single-container mode: in-process simulator, SQLite, no Prometheus.
+#   docker compose -f docker-compose.dev.yml up --build   → API on :8000
+services:
+  backend:
+    build: ./backend
+    environment:
+      SENTINEL_TELEMETRY_SOURCE: simulator
+      SENTINEL_DATABASE_URL: sqlite:////data/sentinel.db
+      SENTINEL_ANALYSIS_INTERVAL_S: "5"
+      SENTINEL_LLM_PROVIDER: template
+    volumes: [sentinel-data:/data]
+    ports: ["8000:8000"]
+volumes:
+  sentinel-data:

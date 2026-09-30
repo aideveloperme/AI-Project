@@ -23,8 +23,19 @@ from sentinel.analytics.history import MetricHistory
 from sentinel.analytics.peers import PeerBenchmark, PeerComparison
 from sentinel.auth.security import SecretBox
 from sentinel.config import Settings
-from sentinel.db import (GPU, AnomalyRow, AuditLog, Database, FleetSampleRow, GPUSampleRow, Incident, Node,
-                         NodeSampleRow, NotificationChannel, NotificationLog)
+from sentinel.db import (
+    GPU,
+    AnomalyRow,
+    AuditLog,
+    Database,
+    FleetSampleRow,
+    GPUSampleRow,
+    Incident,
+    Node,
+    NodeSampleRow,
+    NotificationChannel,
+    NotificationLog,
+)
 from sentinel.incidents.service import ACTIVE_STATUSES, IncidentService, incident_to_dict
 from sentinel.notifications.channels import EXTERNAL_SAAS, NOTIFIERS, SEVERITY_RANK, incident_payload
 from sentinel.rca.engine import Hypothesis, NodeEvidence, RCAEngine, node_severity
@@ -65,6 +76,7 @@ class AnalysisEngine:
         self._task: asyncio.Task | None = None
         self._lock = asyncio.Lock()
         self._explain_tasks: set[asyncio.Task] = set()
+        self._explaining: set[str] = set()
 
     # ------------------------------------------------------------ lifecycle
     async def start(self) -> None:
@@ -115,9 +127,10 @@ class AnalysisEngine:
             self.state.last_cycle_ms = (time.perf_counter() - t0) * 1000
             self.state.last_error = None
         for event, inc in changes:
-            if explain:
-                self._schedule_explain(inc["id"])
             await asyncio.to_thread(self.notify, inc, event)
+        if explain:
+            for iid in await asyncio.to_thread(self._needs_explanation):
+                self._schedule_explain(iid)
         return self.state
 
     def _persist_cycle(self, snap, peers, signals, results, node_status, gpu_status) -> list[tuple[str, dict]]:
@@ -221,10 +234,19 @@ class AnalysisEngine:
         return res
 
     # ----------------------------------------------------- AI explanations
+    def _needs_explanation(self) -> list[str]:
+        with self.db.session() as db:
+            return list(db.scalars(select(Incident.id).where(
+                Incident.tenant_id == self.s.tenant, Incident.status.in_(ACTIVE_STATUSES),
+                Incident.ai_explanation.is_(None))))
+
     def _schedule_explain(self, incident_id: str) -> None:
+        if incident_id in self._explaining:
+            return
+        self._explaining.add(incident_id)
         task = asyncio.create_task(asyncio.to_thread(self.explain_incident, incident_id))
         self._explain_tasks.add(task)
-        task.add_done_callback(self._explain_tasks.discard)
+        task.add_done_callback(lambda t: (self._explain_tasks.discard(t), self._explaining.discard(incident_id)))
 
     def explain_incident(self, incident_id: str, force: bool = False) -> dict | None:
         with self.db.session() as db:
@@ -236,6 +258,8 @@ class AnalysisEngine:
             d = incident_to_dict(inc)
         # Template first (instant), then LLM enrichment if available.
         exp = self.explainer.explain(d, use_llm=True)
+        exp["generated_at"] = utcnow().isoformat()
+        exp["perf_deviation_pct"] = d.get("perf_deviation_pct")
         with self.db.session() as db:
             inc = db.get(Incident, incident_id)
             if inc is not None:

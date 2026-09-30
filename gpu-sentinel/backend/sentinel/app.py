@@ -2,8 +2,8 @@
 from __future__ import annotations
 
 import logging
-from contextlib import asynccontextmanager
 from collections import defaultdict, deque
+from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 
 from fastapi import FastAPI, Request
@@ -75,6 +75,7 @@ def load_license(s: Settings) -> License:
 def create_app(settings: Settings | None = None, autostart: bool = True, source: TelemetrySource | None = None) -> FastAPI:
     s = settings or get_settings()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    logging.getLogger("httpx").setLevel(logging.WARNING)  # one line per PromQL query is noise
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):

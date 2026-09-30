@@ -120,7 +120,7 @@ def test_audit_log_records_actions(client, admin, operator):
     logs = client.get("/api/v1/audit-logs", headers=admin).json()
     actions = [l["action"] for l in logs]
     assert "auth.login" in actions
-    assert any(a == "POST /api/v1/demo/faults" and l["actor"] == "operator" for a, l in zip(actions, logs))
+    assert any(a == "POST /api/v1/demo/faults" and l["actor"] == "operator" for a, l in zip(actions, logs, strict=False))
 
 
 def test_fleet_endpoints(client, admin, operator):
@@ -151,3 +151,20 @@ def test_fleet_endpoints(client, admin, operator):
     assert tops["gpu-10"] == "power_throttling"
     assert tops["gpu-02"] == "communication_bottleneck"
     assert client.get("/metrics").text.startswith("# TYPE")
+
+
+def test_explanation_tracks_evolving_evidence(client, admin, operator):
+    """The explanation quotes numbers, so it must be regenerated as the incident evolves."""
+    import time
+    client.cycles(20)
+    client.post("/api/v1/demo/faults", headers=operator, json={"type": "thermal", "node": "gpu-05", "gpu": 1, "severity": 1.0})
+    client.cycles(3, explain=True)   # incident opens early in the thermal ramp
+    client.cycles(12, explain=True)  # degradation deepens
+    time.sleep(0.5)                  # background explanation threads
+    client.cycles(1, explain=True)
+    time.sleep(0.5)
+    inc = client.get("/api/v1/incidents?status=active", headers=admin).json()[0]
+    detail = client.get(f"/api/v1/incidents/{inc['id']}", headers=admin).json()
+    exp = detail["ai_explanation"]
+    assert exp is not None and exp["generated_at"]
+    assert abs(exp["perf_deviation_pct"] - detail["perf_deviation_pct"]) < 3

@@ -10,11 +10,11 @@ from __future__ import annotations
 import base64
 import json
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from cryptography.exceptions import InvalidSignature
-from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey, Ed25519PublicKey
 from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey, Ed25519PublicKey
 
 PLANS = {
     "community": {"max_gpus": 16, "features": ["monitoring", "peer_benchmarking", "anomaly_detection"]},
@@ -34,13 +34,13 @@ class License:
     max_gpus: int | None = None
     max_nodes: int | None = None
     features: list[str] = field(default_factory=list)
-    issued_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    issued_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
     expires_at: str | None = None
     support_tier: str = "standard"
     tenant: str = "default"
 
     def expired(self) -> bool:
-        return bool(self.expires_at) and datetime.fromisoformat(self.expires_at) < datetime.now(timezone.utc)
+        return bool(self.expires_at) and datetime.fromisoformat(self.expires_at) < datetime.now(UTC)
 
 
 DEMO_LICENSE = License(customer="Demo / Evaluation", plan="enterprise", license_type="enterprise",

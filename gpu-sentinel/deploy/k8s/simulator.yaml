@@ -1,0 +1,24 @@
+# Demo only: simulated 12-node H100 cluster exposing DCGM-compatible metrics.
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: simulator, labels: { app: sentinel-simulator } }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: sentinel-simulator } }
+  template:
+    metadata:
+      labels: { app: sentinel-simulator }
+      annotations: { prometheus.io/scrape: "true", prometheus.io/port: "9400" }
+    spec:
+      containers:
+        - name: simulator
+          image: gpu-sentinel/backend
+          command: ["python", "-m", "sentinel.simulator.server"]
+          ports: [{ containerPort: 9400 }]
+---
+apiVersion: v1
+kind: Service
+metadata: { name: simulator }
+spec:
+  selector: { app: sentinel-simulator }
+  ports: [{ port: 9400 }]

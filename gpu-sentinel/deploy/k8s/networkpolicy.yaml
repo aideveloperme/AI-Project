@@ -1,0 +1,39 @@
+# Default-deny, then allow only: ingress → frontend → backend; backend → Prometheus, DB, local LLM, DNS.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: { name: default-deny }
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: { name: frontend }
+spec:
+  podSelector: { matchLabels: { app: sentinel-frontend } }
+  policyTypes: [Ingress, Egress]
+  ingress: [{ ports: [{ port: 8080 }] }]
+  egress:
+    - to: [{ podSelector: { matchLabels: { app: sentinel-backend } } }]
+      ports: [{ port: 8000 }]
+    - ports: [{ port: 53, protocol: UDP }, { port: 53, protocol: TCP }]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: { name: backend }
+spec:
+  podSelector: { matchLabels: { app: sentinel-backend } }
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from: [{ podSelector: { matchLabels: { app: sentinel-frontend } } }]
+      ports: [{ port: 8000 }]
+    - from: [{ namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: monitoring } } }]
+      ports: [{ port: 8000 }]
+  egress:
+    - to: [{ namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: monitoring } } }]
+      ports: [{ port: 9090 }]
+    - to: [{ namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: databases } } }]
+      ports: [{ port: 5432 }]
+    - to: [{ podSelector: { matchLabels: { app: ollama } } }]
+      ports: [{ port: 11434 }]
+    - ports: [{ port: 53, protocol: UDP }, { port: 53, protocol: TCP }]

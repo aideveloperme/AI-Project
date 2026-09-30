@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sentinel-config
+data:
+  SENTINEL_ENV: production
+  SENTINEL_DEMO_MODE: "false"
+  SENTINEL_TELEMETRY_SOURCE: prometheus
+  SENTINEL_PROMETHEUS_URL: http://prometheus-operated.monitoring.svc:9090
+  SENTINEL_GPU_VENDOR: nvidia
+  SENTINEL_ANALYSIS_INTERVAL_S: "15"
+  SENTINEL_PEER_GROUP_KEYS: gpu_model,server_type,workload_kind
+  SENTINEL_LLM_PROVIDER: auto
+  SENTINEL_LLM_URL: http://ollama.gpu-sentinel.svc:11434
+  SENTINEL_ALLOW_CLOUD_LLM: "false"
+  SENTINEL_ALLOW_EXTERNAL_NOTIFICATIONS: "false"
+  SENTINEL_RETENTION_SAMPLES_DAYS: "30"
+  SENTINEL_CORS_ORIGINS: https://sentinel.example.internal

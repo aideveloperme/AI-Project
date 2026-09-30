@@ -11,8 +11,8 @@ from __future__ import annotations
 import json
 import logging
 import re
+from collections.abc import Callable
 from datetime import timedelta
-from typing import Callable
 
 import numpy as np
 from sqlalchemy import select
@@ -326,7 +326,7 @@ class Copilot:
                              (worst - meds[wi]) / meds[wi] * 100 if meds[wi] else 0.0, spec.unit))
         group = next(iter(peers.get(node, {}).values())).group if peers.get(node) else "n/a"
         lines = [f"**{node} vs. healthy peers** (peer group: {group})", "",
-                 "| Metric | {0} | Peer median | Deviation |".format(node), "|---|---:|---:|---:|"]
+                 f"| Metric | {node} | Peer median | Deviation |", "|---|---:|---:|---:|"]
         for label, _, v, md, dev, unit in rows:
             flag = " ⚠" if abs(dev) >= 8 else ""
             lines.append(f"| {label} | {v:,.1f} {unit} | {md:,.1f} {unit} | {dev:+.1f}%{flag} |")

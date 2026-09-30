@@ -1,0 +1,94 @@
+# GPU Sentinel AI — full on-prem stack (demo mode with simulated GPU cluster).
+#   docker compose up -d --build           → http://localhost:8080  (admin / sentinel-admin)
+#   docker compose --profile llm up -d     → also start a local LLM (Ollama)
+# Nothing in this stack calls an external service.
+name: gpu-sentinel
+
+x-backend-env: &backend-env
+  SENTINEL_DATABASE_URL: postgresql+psycopg://sentinel:${POSTGRES_PASSWORD:-sentinel-dev-password}@timescaledb:5432/sentinel
+  SENTINEL_TELEMETRY_SOURCE: prometheus
+  SENTINEL_PROMETHEUS_URL: http://prometheus:9090
+  SENTINEL_SIMULATOR_URL: http://simulator:9400
+  SENTINEL_ANALYSIS_INTERVAL_S: "10"
+  SENTINEL_DEMO_MODE: "true"
+  SENTINEL_JWT_SECRET: ${SENTINEL_JWT_SECRET:-change-me-in-production-please-32b+}
+  SENTINEL_SECRET_KEY: ${SENTINEL_SECRET_KEY:-}
+  SENTINEL_BOOTSTRAP_ADMIN_PASSWORD: ${SENTINEL_ADMIN_PASSWORD:-sentinel-admin}
+  SENTINEL_LLM_PROVIDER: ${SENTINEL_LLM_PROVIDER:-auto}
+  SENTINEL_LLM_URL: http://ollama:11434
+  SENTINEL_LLM_MODEL: ${SENTINEL_LLM_MODEL:-llama3.1:8b-instruct-q4_K_M}
+  SENTINEL_ALLOW_CLOUD_LLM: "false"
+  SENTINEL_CORS_ORIGINS: http://localhost:8080
+
+services:
+  simulator:
+    build: ./backend
+    command: ["python", "-m", "sentinel.simulator.server"]
+    environment:
+      SIM_NODES: "12"
+      SIM_GPUS_PER_NODE: "8"
+      SIM_TICK_SECONDS: "5"
+      SIM_RANDOM_FAULTS: ${SIM_RANDOM_FAULTS:-false}
+    networks: [telemetry]
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v2.53.2
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=${PROMETHEUS_RETENTION:-7d}
+    volumes:
+      - ./deploy/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    networks: [telemetry]
+    restart: unless-stopped
+
+  timescaledb:
+    image: timescale/timescaledb:2.17.2-pg16
+    environment:
+      POSTGRES_DB: sentinel
+      POSTGRES_USER: sentinel
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sentinel-dev-password}
+    volumes: [db-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sentinel -d sentinel"]
+      interval: 5s
+      retries: 20
+    networks: [data]
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    environment: *backend-env
+    depends_on:
+      timescaledb: { condition: service_healthy }
+      prometheus: { condition: service_started }
+    networks: [telemetry, data, frontend, llm]
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    ports: ["${SENTINEL_PORT:-8080}:8080"]
+    depends_on: [backend]
+    networks: [frontend]
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama:0.5.4
+    profiles: [llm]
+    volumes: [ollama-data:/root/.ollama]
+    networks: [llm]
+    restart: unless-stopped
+
+# Network isolation: the database is reachable only from the backend; the
+# browser-facing proxy only reaches the backend; telemetry stays internal.
+networks:
+  telemetry: { internal: true }
+  data: { internal: true }
+  llm: { internal: false }   # set internal: true after pulling models (air-gapped)
+  frontend: {}
+
+volumes:
+  prometheus-data:
+  db-data:
+  ollama-data:

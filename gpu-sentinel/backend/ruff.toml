@@ -1,0 +1,10 @@
+line-length = 160
+target-version = "py311"
+[lint]
+select = ["E", "F", "I", "B", "UP"]
+ignore = ["B008", "E731", "UP007", "UP038", "B904"]
+[lint.per-file-ignores]
+"tests/*" = ["E741"]
+
+"sentinel/telemetry/catalog.py" = ["E501"]
+"sentinel/simulator/exporter.py" = ["E501"]

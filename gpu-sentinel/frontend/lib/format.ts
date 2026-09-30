@@ -19,8 +19,8 @@ export function ago(iso: string | null | undefined): string {
   if (s < 86400) return `${Math.round(s / 3600)}h ago`;
   return `${Math.round(s / 86400)}d ago`;
 }
-export function time(ms: number): string {
-  return new Date(ms).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+export function time(ms: number, seconds = false): string {
+  return new Date(ms).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", ...(seconds ? { second: "2-digit" } : {}) });
 }
 export const FAULT_LABELS: Record<string, string> = {
   thermal: "Thermal problem",

@@ -9,7 +9,7 @@ when full, so ``values()`` is an O(1) view and appends are amortised O(1).
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import numpy as np
 
@@ -73,7 +73,7 @@ class MetricHistory:
         t, v = self.times(entity, metric), self.values(entity, metric)
         if last:
             t, v = t[-last:], v[-last:]
-        return [(datetime.fromtimestamp(a, tz=timezone.utc), float(b)) for a, b in zip(t, v)]
+        return [(datetime.fromtimestamp(a, tz=UTC), float(b)) for a, b in zip(t, v, strict=False)]
 
     def moving_average(self, entity: str, metric: str, window: int = 3) -> float | None:
         v = self.values(entity, metric)

@@ -8,7 +8,7 @@ import numpy as np
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 
-from sentinel.analytics.peers import compare, peer_groups
+from sentinel.analytics.peers import peer_groups
 from sentinel.analytics.workloads import job_analysis
 from sentinel.api.deps import Principal, ctx, require
 from sentinel.db import AnomalyRow, FleetSampleRow, GPUSampleRow, Incident, NodeSampleRow
@@ -46,7 +46,7 @@ def overview(p: Principal = READ, c=Depends(ctx)) -> dict:
                            .order_by(FleetSampleRow.ts.desc()).limit(120)).all()
     inc_by_node = {i.node: i for i in active}
     problems = []
-    for node, (ev, hyps, sev) in st.results.items():
+    for node, (ev, hyps, _sev) in st.results.items():
         if not ev.signals:
             continue
         problems.append({"node": node, "status": st.node_status[node], "signals": len(ev.signals),
@@ -201,7 +201,7 @@ def node_history(node: str, metrics: str = Query("throughput,cpu_util"), gpu: in
             t, v = hist.times(entity, m), hist.values(entity, m)
             mask = t >= since
             step = max(1, int(mask.sum() / 400))
-            out[m] = [[float(a) * 1000, round(float(b), 3)] for a, b in list(zip(t[mask], v[mask]))[::step]]
+            out[m] = [[float(a) * 1000, round(float(b), 3)] for a, b in list(zip(t[mask], v[mask], strict=False))[::step]]
         return {"entity": entity, "source": "memory", "series": out}
     since = utcnow() - timedelta(minutes=minutes)
     with c.db.session() as db:

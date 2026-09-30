@@ -10,8 +10,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime
 
-from sqlalchemy import (JSON, Boolean, DateTime, Float, ForeignKey, Index, Integer, String, Text, create_engine,
-                        event, text)
+from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Index, Integer, String, Text, create_engine, event, text
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, relationship, sessionmaker
 
 from sentinel.telemetry.models import utcnow
@@ -166,7 +165,7 @@ class Incident(Base):
     peer_comparison: Mapped[list] = mapped_column(JSON, default=list)
     hypotheses: Mapped[list] = mapped_column(JSON, default=list)
     recommended_actions: Mapped[list] = mapped_column(JSON, default=list)
-    ai_explanation: Mapped[dict | None] = mapped_column(JSON)
+    ai_explanation: Mapped[dict | None] = mapped_column(JSON(none_as_null=True))
     acknowledged_by: Mapped[str | None] = mapped_column(String(128))
     acknowledged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     assigned_to: Mapped[str | None] = mapped_column(String(128))
@@ -174,7 +173,7 @@ class Incident(Base):
     resolution: Mapped[str | None] = mapped_column(Text)
     recurrence_count: Mapped[int] = mapped_column(Integer, default=0)
     related_incidents: Mapped[list] = mapped_column(JSON, default=list)
-    events: Mapped[list["IncidentEvent"]] = relationship(back_populates="incident", order_by="IncidentEvent.ts",
+    events: Mapped[list[IncidentEvent]] = relationship(back_populates="incident", order_by="IncidentEvent.ts",
                                                         cascade="all, delete-orphan")
 
 

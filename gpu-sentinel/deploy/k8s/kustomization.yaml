@@ -1,0 +1,17 @@
+# kubectl apply -k deploy/k8s     (edit secret.example.yaml first!)
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: gpu-sentinel
+resources:
+  - namespace.yaml
+  - secret.example.yaml
+  - configmap.yaml
+  - backend.yaml
+  - frontend.yaml
+  - networkpolicy.yaml
+  # - simulator.yaml   # demo clusters only
+images:
+  - name: gpu-sentinel/backend
+    newTag: 0.1.0
+  - name: gpu-sentinel/frontend
+    newTag: 0.1.0

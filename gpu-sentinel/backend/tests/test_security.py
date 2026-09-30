@@ -1,10 +1,17 @@
-import time
 
 import jwt
 import pytest
 
-from sentinel.auth.security import (SecretBox, create_token, decode_token, generate_api_key, has_permission,
-                                    hash_api_key, hash_password, verify_password)
+from sentinel.auth.security import (
+    SecretBox,
+    create_token,
+    decode_token,
+    generate_api_key,
+    has_permission,
+    hash_api_key,
+    hash_password,
+    verify_password,
+)
 from sentinel.licensing.license import License, generate_keypair, sign_license, usage_status, verify_license
 
 
@@ -54,7 +61,8 @@ def test_license_signing_and_soft_enforcement():
     tok = sign_license(lic, priv)
     assert verify_license(tok, pub).customer == "ACME AI"
     body, sig = tok.split(".")
-    import base64, json
+    import base64
+    import json
     forged = json.loads(base64.b64decode(body))
     forged["max_gpus"] = 100000
     with pytest.raises(ValueError):

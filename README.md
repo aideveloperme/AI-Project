@@ -1,5 +1,10 @@
 # AI & Computer Vision Projects
 
+> **New: [GPU Sentinel AI](gpu-sentinel/)**, an AI-powered data-center performance and health
+> intelligence platform for NVIDIA GPU clusters (FastAPI + Prometheus + TimescaleDB + Next.js, on-prem LLM).
+> See [gpu-sentinel/README.md](gpu-sentinel/README.md).
+
+
 This repository contains multiple AI and computer vision projects implemented in Python using Google Colab, focusing on deep learning, CNNs, and NLP. Each notebook is self-contained and demonstrates different AI/ML techniques applied to real-world tasks.
 
 Finding_laneLines.ipynb

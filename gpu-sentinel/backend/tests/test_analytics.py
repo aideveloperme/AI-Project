@@ -1,10 +1,18 @@
 from collections import Counter
+from datetime import UTC
 
 import numpy as np
 import pytest
 
-from sentinel.analytics.detectors import (AnomalySignal, DetectionContext, PeerDeviationDetector, RateOfChangeDetector,
-                                          RollingZScoreDetector, StaticThresholdDetector, merge_signals)
+from sentinel.analytics.detectors import (
+    AnomalySignal,
+    DetectionContext,
+    PeerDeviationDetector,
+    RateOfChangeDetector,
+    RollingZScoreDetector,
+    StaticThresholdDetector,
+    merge_signals,
+)
 from sentinel.analytics.history import MetricHistory
 from sentinel.analytics.peers import PeerBenchmark, PeerStats, compare, peer_groups
 from sentinel.simulator.faults import Fault, FaultType
@@ -22,10 +30,10 @@ def test_peer_stats_robust_to_outlier():
 
 
 def test_history_ring_buffer_bounded():
-    from datetime import datetime, timezone
+    from datetime import datetime
     h = MetricHistory(maxlen=10)
     for i in range(35):
-        h.add("e", "m", datetime.fromtimestamp(i, tz=timezone.utc), float(i))
+        h.add("e", "m", datetime.fromtimestamp(i, tz=UTC), float(i))
     v = h.values("e", "m")
     assert v.size == 10 and v[0] == 25 and v[-1] == 34
     assert h.moving_average("e", "m", 3) == pytest.approx(33.0)
@@ -43,9 +51,9 @@ def test_peer_groups_split_by_workload_and_fallback():
     assert sum(len(v) for v in groups.values()) == 12
 
 
-@pytest.mark.parametrize("seed", [11, 12, 13])
-def test_no_false_positives_on_healthy_fleet(seed):
-    p = Pipeline(seed=seed)
+@pytest.mark.parametrize("seed,dt", [(11, 10.0), (12, 10.0), (13, 3.0)])
+def test_no_false_positives_on_healthy_fleet(seed, dt):
+    p = Pipeline(seed=seed, dt=dt)
     counts = Counter()
     for _ in range(80):
         for s in p.step():

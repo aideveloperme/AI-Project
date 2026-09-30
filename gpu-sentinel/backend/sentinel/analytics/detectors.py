@@ -224,14 +224,16 @@ class HistoricalBaselineDetector(Detector):
 
 
 class RateOfChangeDetector(Detector):
-    """Slope (per minute) over the last N samples via least squares."""
+    """Least-squares slope (per minute) over a *time* window (default 2 min, ≥1 min span),
+    independent of the collection interval. Also requires the absolute change over the
+    window to exceed the metric's noise floor, so sensor jitter never trips it."""
 
     name = "rate_of_change"
     LIMITS = {("gpu", "temp_c"): 4.0, ("gpu", "mem_temp_c"): 4.0, ("gpu", "power_w"): 200.0}
     REL_LIMITS = {("node", "throughput"): 0.15, ("node", "nccl_busbw_gbps"): 0.25}
 
-    def __init__(self, samples: int = 6):
-        self.samples = samples
+    def __init__(self, window_s: float = 120.0, min_span_s: float = 60.0, min_samples: int = 5):
+        self.window_s, self.min_span_s, self.min_samples = window_s, min_span_s, min_samples
 
     def detect(self, ctx: DetectionContext) -> list[AnomalySignal]:
         out = []
@@ -239,22 +241,23 @@ class RateOfChangeDetector(Detector):
             key = (spec.level, spec.name)
             if key not in self.LIMITS and key not in self.REL_LIMITS:
                 continue
-            series = ctx.history.series(entity, spec.name, last=self.samples)
-            if len(series) < self.samples:
+            t = ctx.history.times(entity, spec.name)
+            if t.size < self.min_samples:
                 continue
-            t0 = series[0][0]
-            x = np.array([(ts - t0).total_seconds() / 60 for ts, _ in series])
-            y = np.array([v for _, v in series])
-            if np.ptp(x) == 0:
+            mask = t >= t[-1] - self.window_s
+            x, y = t[mask], ctx.history.values(entity, spec.name)[mask]
+            if x.size < self.min_samples or x[-1] - x[0] < self.min_span_s:
                 continue
-            slope = float(np.polyfit(x, y, 1)[0])  # units per minute
+            slope = float(np.polyfit((x - x[0]) / 60.0, y, 1)[0])  # units per minute
+            change = slope * (x[-1] - x[0]) / 60.0
             direction = "high" if slope > 0 else "low"
             if not _bad(spec, direction):
                 continue
-            if key in self.LIMITS and abs(slope) >= self.LIMITS[key]:
+            if key in self.LIMITS and abs(slope) >= self.LIMITS[key] and abs(change) >= 2 * max(spec.peer_abs_floor, 1.0):
                 out.append(_signal(entity, spec, float(y[-1]), float(y[0]), None, None, direction, "warning", self.name,
                                    f"{spec.label} changing at {slope:+.1f}{spec.unit}/min"))
-            elif key in self.REL_LIMITS and y.mean() and abs(slope) / abs(y.mean()) >= self.REL_LIMITS[key]:
+            elif key in self.REL_LIMITS and y.mean() and abs(slope) / abs(y.mean()) >= self.REL_LIMITS[key] \
+                    and abs(change) / abs(y.mean()) >= spec.peer_min_rel_dev:
                 out.append(_signal(entity, spec, float(y[-1]), float(y[0]), slope / abs(y.mean()) * 100, None, direction,
                                    "warning", self.name, f"{spec.label} changing at {slope / abs(y.mean()) * 100:+.1f}%/min"))
         return out

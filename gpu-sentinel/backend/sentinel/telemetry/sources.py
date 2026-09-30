@@ -17,7 +17,7 @@ import httpx
 from sentinel.simulator.cluster import ClusterSimulator
 from sentinel.telemetry.catalog import decode_throttle, hardware
 from sentinel.telemetry.models import FleetSnapshot, GPUSample, NodeSample, Workload, utcnow
-from sentinel.telemetry.vendors import NODE_INFO_QUERY, NODE_QUERIES, VENDORS, WORKLOAD_INFO_QUERY, DCGM_INVENTORY_QUERY
+from sentinel.telemetry.vendors import DCGM_INVENTORY_QUERY, NODE_INFO_QUERY, NODE_QUERIES, VENDORS, WORKLOAD_INFO_QUERY
 
 log = logging.getLogger(__name__)
 
@@ -88,8 +88,8 @@ class PrometheusSource(TelemetrySource):
             *[self._safe(NODE_QUERIES[k]) for k in node_names],
         )
         node_info, wl_info, inventory = results[0], results[1], results[2]
-        gpu_res = dict(zip(gpu_names, results[3:3 + len(gpu_names)]))
-        node_res = dict(zip(node_names, results[3 + len(gpu_names):]))
+        gpu_res = dict(zip(gpu_names, results[3:3 + len(gpu_names)], strict=False))
+        node_res = dict(zip(node_names, results[3 + len(gpu_names):], strict=False))
         nl = self.node_label
 
         nodes: dict[str, NodeSample] = {}

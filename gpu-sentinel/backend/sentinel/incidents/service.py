@@ -7,7 +7,7 @@ from datetime import timedelta
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from sentinel.analytics.detectors import SEV_ORDER, AnomalySignal
+from sentinel.analytics.detectors import SEV_ORDER
 from sentinel.analytics.peers import PeerComparison
 from sentinel.db import Incident, IncidentEvent
 from sentinel.rca.engine import Hypothesis, NodeEvidence
@@ -242,7 +242,14 @@ class IncidentService:
         inc.signals = sig_dicts
         if top:
             inc.confidence, inc.confidence_label = top.confidence, top.confidence_label
-        inc.perf_deviation_pct = observed["throughput"]["deviation_pct"] if observed.get("throughput") else inc.perf_deviation_pct
+        new_perf = observed["throughput"]["deviation_pct"] if observed.get("throughput") else inc.perf_deviation_pct
+        # Explanations quote numbers: regenerate when the evidence changed materially
+        # (escalation, new diagnosis, or throughput moved ≥3 points since it was written).
+        exp = inc.ai_explanation or {}
+        if exp and (ev_type is not None or (new_perf is not None and exp.get("perf_deviation_pct") is not None
+                                            and abs(new_perf - exp["perf_deviation_pct"]) >= 3)):
+            inc.ai_explanation = None
+        inc.perf_deviation_pct = new_perf
         inc.last_signal_at = now
         inc.updated_at = now
         return ev_type
