@@ -1,4 +1,4 @@
-"""Anomalies, incidents, RCA, copilot, alerts and demo (fault injection) endpoints."""
+"""Anomalies, incidents, RCA, Ask Sentinel, alerts and demo (fault injection) endpoints."""
 from __future__ import annotations
 
 import httpx
@@ -146,18 +146,18 @@ def _count(it) -> dict:
     return d
 
 
-# ----------------------------------------------------------------- copilot
+# ------------------------------------------------------------ Ask Sentinel
 class Ask(BaseModel):
     question: str = Field(..., min_length=2, max_length=1000)
     use_llm: bool = True
 
 
-@router.post("/copilot/ask")
+@router.post("/ask")
 def ask(body: Ask, p: Principal = READ, c=Depends(ctx)) -> dict:
-    return c.copilot.ask(body.question, use_llm=body.use_llm)
+    return c.assistant.ask(body.question, use_llm=body.use_llm)
 
 
-@router.get("/copilot/suggestions")
+@router.get("/ask/suggestions")
 def suggestions(p: Principal = READ, c=Depends(ctx)) -> list[str]:
     st = c.engine.state
     bad = [n for n, s in st.node_status.items() if s != "healthy"]

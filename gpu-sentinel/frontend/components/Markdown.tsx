@@ -1,5 +1,5 @@
 "use client";
-/* Minimal, safe markdown renderer for copilot answers (no HTML injection):
+/* Minimal, safe markdown renderer for Ask Sentinel answers (no HTML injection):
  * headings-as-bold, **bold**, *italic*, `code`, lists, pipe tables, paragraphs. */
 import React from "react";
 

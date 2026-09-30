@@ -62,7 +62,7 @@ Sections marked **(designed)** are the planned architecture.
 | 6. Incident management | De-duplication, persistence gating, escalation, recurrence, auto-resolve, workflow | `incidents/service.py` |
 | 7. Storage | Inventory, incidents, anomalies, downsampled samples, audit | PostgreSQL + TimescaleDB (SQLite for dev) |
 | 8. AI explanation | Evidence packet → local LLM → grounding validator → explanation, with a deterministic fallback | `ai/` |
-| 9. Operator Copilot | NL question → allow-listed read-only tools → grounded answer | `copilot/` |
+| 9. Ask Sentinel | NL question → allow-listed read-only tools → grounded answer | `assistant/` |
 | 10. API | REST, JWT/API-key auth, RBAC, audit | FastAPI (`api/`) |
 | 11. Presentation | 14-page enterprise dashboard | Next.js static export behind nginx |
 | 12. Notifications | Dashboard, webhook, email; Slack/Teams/PagerDuty adapters | `notifications/` |
@@ -92,7 +92,7 @@ flowchart LR
     RCA["RCA rule engine"]
     INC["Incident service"]
     AI["Explainer<br/>+ grounding validator"]
-    COP["Copilot<br/>(tool allow-list)"]
+    COP["Ask Sentinel<br/>(tool allow-list)"]
     NOTI["Notifier"]
     API["REST API · Auth · RBAC · Audit"]
   end
@@ -123,7 +123,7 @@ sequenceDiagram
   participant E as Analysis engine (every N s)
   participant D as DB (Timescale)
   participant L as Local LLM
-  participant U as Dashboard / Copilot
+  participant U as Dashboard / Ask Sentinel
   Exp->>P: scrape /metrics (5–15 s)
   E->>P: ~45 instant PromQL queries (parallel)
   P-->>E: vectors (per node / per GPU)
@@ -135,7 +135,7 @@ sequenceDiagram
   E->>L: evidence packet (only for new/changed incidents, async)
   L-->>E: JSON explanation → validator (numbers & causes grounded?) → store / fallback
   E->>U: notifications (dashboard, webhook, email)
-  U->>E: REST (JWT / API key) · copilot questions → allow-listed tools
+  U->>E: REST (JWT / API key) · Ask Sentinel questions → allow-listed tools
 ```
 
 **Cycle cost (measured):** about 70 ms per cycle for 96 GPUs in the simulator source, including detectors and
@@ -224,7 +224,7 @@ The OpenAPI spec is served at `/docs` and `/openapi.json`. All `/api/v1/*` endpo
 | `POST /api/v1/incidents/{id}/comments` | operator | comment |
 | `POST /api/v1/incidents/{id}/explain?force=` | viewer | AI explanation (cached; `force` regenerates) |
 | `GET /api/v1/rca/nodes` · `/rca/rules` | viewer | live diagnoses · rule catalogue |
-| `POST /api/v1/copilot/ask` `{question, use_llm}` | viewer | copilot answer + tool trace |
+| `POST /api/v1/ask` `{question, use_llm}` | viewer | Ask Sentinel answer + tool trace |
 | `GET /api/v1/alerts` · `POST /alerts/read` | viewer | dashboard alerts |
 | `GET/POST/DELETE /api/v1/demo/faults`, `POST /demo/scenarios/{name}` | operator | fault injection (demo mode only) |
 | `GET/POST/PATCH /api/v1/users` | admin | user management |
@@ -256,7 +256,7 @@ gpu-sentinel/
 │   │   ├── rca/                   # correlation rules & hypotheses
 │   │   ├── incidents/             # lifecycle service
 │   │   ├── ai/                    # LLM providers, explainer + grounding validator
-│   │   ├── copilot/               # NL → tools
+│   │   ├── assistant/             # Ask Sentinel: NL → tools
 │   │   ├── auth/                  # hashing, JWT, API keys, RBAC, SecretBox
 │   │   ├── notifications/         # webhook/email/slack/teams/pagerduty
 │   │   ├── licensing/             # signed licenses, plans, soft enforcement
@@ -301,14 +301,14 @@ gpu-sentinel/
 | Authentication | JWT bearer tokens (configurable TTL, issuer-checked) or `X-API-Key`; login rate limiting per IP |
 | Password storage | PBKDF2-HMAC-SHA256, 390k iterations, per-user salt, constant-time compare |
 | API keys | random 256-bit, `gs_` prefix, only SHA-256 hash stored, revocable, `last_used` tracked, role-scoped |
-| RBAC | `viewer` (read, copilot) < `operator` (+incident workflow, fault injection) < `admin` (+users, keys, notifications, settings, audit, license); enforced server-side per endpoint (`require(permission)`) |
+| RBAC | `viewer` (read, Ask Sentinel) < `operator` (+incident workflow, fault injection) < `admin` (+users, keys, notifications, settings, audit, license); enforced server-side per endpoint (`require(permission)`) |
 | Tenant separation | `tenant_id` on every row; queries filter by the principal's tenant |
 | Secrets at rest | notification credentials encrypted with Fernet (AES-128-CBC + HMAC); key from `SENTINEL_SECRET_KEY` (K8s Secret / Vault); redacted in API responses |
 | Audit | every state-changing request (actor, role, path, status, IP) plus explicit semantic events (`user.create`, `apikey.revoke`, `license.install`, `auth.login_failed`…) |
 | Transport & headers | TLS at the ingress; `X-Frame-Options: DENY`, `nosniff`, `no-referrer`, CSP on the dashboard, `Cache-Control: no-store` on the API |
 | Network isolation | Compose: internal-only `telemetry` and `data` networks (DB reachable only from the backend). K8s: default-deny NetworkPolicies with explicit egress to Prometheus, DB, local LLM and DNS |
 | Data egress | Cloud LLM endpoints are refused unless `SENTINEL_ALLOW_CLOUD_LLM=true` (endpoint IP classification). Slack/Teams/PagerDuty are blocked unless `SENTINEL_ALLOW_EXTERNAL_NOTIFICATIONS=true`. The Settings page shows whether any telemetry leaves the site |
-| LLM safety | The LLM sees only an evidence packet (no credentials, no raw DB access); the copilot can only call allow-listed read-only Python functions (no shell/SQL/HTTP); outputs are number- and cause-grounded or discarded |
+| LLM safety | The LLM sees only an evidence packet (no credentials, no raw DB access); the assistant can only call allow-listed read-only Python functions (no shell/SQL/HTTP); outputs are number- and cause-grounded or discarded |
 | Containers | non-root UID, read-only root FS (K8s), dropped capabilities, seccomp RuntimeDefault, restricted Pod Security |
 | Retention | configurable per data class (samples, incidents, audit) with an automatic purge job and a manual trigger |
 | Supply chain | pinned dependency versions; no CDN assets at runtime |
@@ -364,7 +364,7 @@ flowchart TB
 - [x] RCA engine with 12 rules (thermal, power cap, clock misconfiguration, HBM degradation, ECC/XID, CPU bottleneck, host memory pressure, network degradation, NCCL bottleneck, NVLink, PCIe, software regression) and an "unexplained degradation" fallback
 - [x] Incidents: evidence-preserving object, gating, dedup, escalation, recurrence, auto-resolve, workflow (OPEN / ACKNOWLEDGED / INVESTIGATING / RESOLVED / FALSE_POSITIVE), comments, timeline
 - [x] AI explanations: deterministic template (offline) plus optional local LLM behind a grounding validator
-- [x] Operator Copilot: 9 read-only tools with deterministic routing and optional LLM routing and phrasing
+- [x] Ask Sentinel: 9 read-only tools with deterministic routing and optional LLM routing and phrasing
 - [x] Notifications: dashboard alerts, HMAC-signed webhook, SMTP email, Slack/Teams/PagerDuty adapters (opt-in)
 - [x] Security: JWT, API keys, RBAC, audit, encrypted credentials, rate limiting, retention, network isolation
 - [x] License model: Ed25519-signed, offline-verifiable, soft enforcement
@@ -403,7 +403,7 @@ The interfaces for all of these exist.
 | Collector contract | mocked Prometheus HTTP API → canonical snapshot (derivations, throttle decoding, failing queries) | `tests/test_prometheus_source.py` |
 | Exporter contract | exposition text parses with the official Prometheus parser; DCGM names and labels present | `tests/test_simulator.py` |
 | API end-to-end | inject → cycles → incident with evidence → explain → workflow → auto-resolve → recurrence; RBAC; audit; API keys | `tests/test_api_e2e.py` |
-| Copilot | 11 routing cases plus content assertions for each example question | `tests/test_copilot.py` |
+| Ask Sentinel | 11 routing cases plus content assertions for each example question | `tests/test_assistant.py` |
 | Notifications | real HTTP server receives an HMAC-signed webhook when an incident opens | `tests/test_notifications.py` |
 | Frontend | `tsc --noEmit` + `next build` in CI; Playwright screenshot smoke run (manual) | CI workflow |
 | Live integration (manual/nightly) | real Prometheus binary scraping the simulator, backend in `prometheus` mode | see README "Verify the Prometheus path" |
@@ -422,7 +422,7 @@ See [DEMO.md](DEMO.md) for the minute-by-minute script. In short:
    drop and throttle flags appear. One incident opens, not five alerts.
 3. **Incident page:** "gpu-04 is performing ~17% below its peer baseline", with the OBSERVED / INFERRED / RECOMMENDED
    explanation and the peer comparison table (GPU utilization shown as *normal*).
-4. **Copilot:** "Why is GPU-04 slow?", "Why did training job 78421 slow down?", "Compare node 4 with healthy nodes".
+4. **Ask Sentinel:** "Why is GPU-04 slow?", "Why did training job 78421 slow down?", "Compare node 4 with healthy nodes".
 5. **Contrast case:** a software regression. Throughput drops but GPU telemetry is normal, so the engine says
    "investigate the application layer" with capped confidence. This shows it doesn't over-claim.
 6. **Clear all** (simulate repair). The incident auto-resolves; replay → recurrence is detected.
@@ -435,7 +435,7 @@ a `mixed-incidents` one-click scenario, and a deterministic explainer if the LLM
 ## 14. Commercialization
 
 * **Packaging:** Community (≤16 GPUs; monitoring, peer benchmarking and detection), Professional (≤512 GPUs;
-  + RCA, AI explanations, copilot, notifications), Enterprise (unlimited; + SSO, multi-tenant, audit export,
+  + RCA, AI explanations, Ask Sentinel, notifications), Enterprise (unlimited; + SSO, multi-tenant, audit export,
   priority support). Implemented as signed license documents (`licensing/license.py`).
 * **Pricing models supported by the license schema:** per-GPU (primary; aligns with the value delivered),
   per-node, and enterprise site license, plus support tiers (standard / premium / mission-critical).

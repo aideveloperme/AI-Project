@@ -19,9 +19,9 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey,
 PLANS = {
     "community": {"max_gpus": 16, "features": ["monitoring", "peer_benchmarking", "anomaly_detection"]},
     "professional": {"max_gpus": 512, "features": ["monitoring", "peer_benchmarking", "anomaly_detection", "rca",
-                                                    "ai_explanations", "copilot", "notifications"]},
+                                                    "ai_explanations", "ask_sentinel", "notifications"]},
     "enterprise": {"max_gpus": None, "features": ["monitoring", "peer_benchmarking", "anomaly_detection", "rca",
-                                                   "ai_explanations", "copilot", "notifications", "sso", "multi_tenant",
+                                                   "ai_explanations", "ask_sentinel", "notifications", "sso", "multi_tenant",
                                                    "audit_export", "priority_support"]},
 }
 

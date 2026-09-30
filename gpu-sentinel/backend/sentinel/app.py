@@ -15,9 +15,9 @@ from sentinel import __version__
 from sentinel.ai.explainer import Explainer
 from sentinel.ai.providers import build_provider
 from sentinel.api import admin, fleet, ops
+from sentinel.assistant.service import Assistant
 from sentinel.auth.security import decode_token, hash_password
 from sentinel.config import Settings, get_settings
-from sentinel.copilot.service import Copilot
 from sentinel.db import AuditLog, Database, Tenant, User
 from sentinel.engine import AnalysisEngine
 from sentinel.licensing.license import DEMO_LICENSE, License, verify_license
@@ -33,7 +33,7 @@ class AppContext:
     db: Database
     engine: AnalysisEngine
     explainer: Explainer
-    copilot: Copilot
+    assistant: Assistant
     license: License
     login_attempts: dict[str, deque] = field(default_factory=lambda: defaultdict(deque))
 
@@ -86,7 +86,7 @@ def create_app(settings: Settings | None = None, autostart: bool = True, source:
         explainer = Explainer(provider)
         engine = AnalysisEngine(s, db, source or build_source(s), explainer)
         app.state.ctx = AppContext(settings=s, db=db, engine=engine, explainer=explainer,
-                                   copilot=Copilot(engine, provider), license=load_license(s))
+                                   assistant=Assistant(engine, provider), license=load_license(s))
         log.info("GPU Sentinel %s: source=%s llm=%s db=%s", __version__, engine.source.name, explainer.provider_name,
                  db.engine.dialect.name)
         if autostart:
@@ -109,7 +109,7 @@ def create_app(settings: Settings | None = None, autostart: bool = True, source:
         # Generic audit trail for every state-changing request on operational endpoints.
         path = request.url.path
         if (request.method in ("POST", "PATCH", "PUT", "DELETE") and path.startswith("/api/v1/")
-                and not path.startswith(("/api/v1/auth/", "/api/v1/copilot/", "/api/v1/users", "/api/v1/api-keys",
+                and not path.startswith(("/api/v1/auth/", "/api/v1/ask", "/api/v1/users", "/api/v1/api-keys",
                                          "/api/v1/notification-channels", "/api/v1/settings", "/api/v1/license",
                                          "/api/v1/retention"))):
             actor, role = "anonymous", None

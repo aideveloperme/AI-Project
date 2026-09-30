@@ -72,7 +72,7 @@ function Users() {
         <button className="primary" onClick={async () => { try { await post("/users", f); setF({ username: "", password: "", role: "viewer" }); setErr(null); reload(); } catch (e: any) { setErr(e.message); } }}>Add user</button>
         {err && <span className="err small">{err}</span>}
       </div>
-      <div className="muted small" style={{ padding: "0 16px 16px" }}>viewer: read dashboards & copilot · operator: + acknowledge/resolve incidents, demo injection · admin: + users, API keys, notifications, settings, audit, license.</div>
+      <div className="muted small" style={{ padding: "0 16px 16px" }}>viewer: read dashboards & Ask Sentinel · operator: + acknowledge/resolve incidents, demo injection · admin: + users, API keys, notifications, settings, audit, license.</div>
     </Card>
   );
 }

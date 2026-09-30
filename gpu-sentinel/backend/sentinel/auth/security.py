@@ -26,7 +26,7 @@ ROLE_RANK = {Role.viewer: 0, Role.operator: 1, Role.admin: 2}
 
 # Permission matrix (documented in docs/ARCHITECTURE.md §8).
 PERMISSIONS: dict[str, Role] = {
-    "read": Role.viewer,              # dashboards, incidents, telemetry, copilot
+    "read": Role.viewer,              # dashboards, incidents, telemetry, Ask Sentinel
     "incident.update": Role.operator,  # ack / investigate / resolve / comment
     "simulator.inject": Role.operator,
     "notification.manage": Role.admin,

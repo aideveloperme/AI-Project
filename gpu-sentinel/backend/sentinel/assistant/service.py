@@ -1,6 +1,6 @@
-"""Operator Copilot: natural-language questions → controlled, read-only tools.
+"""Ask Sentinel: natural-language questions → controlled, read-only tools.
 
-Security model: the copilot can only call functions in :data:`TOOLS`. There is
+Security model: the assistant can only call functions in :data:`TOOLS`. There is
 no shell, SQL or HTTP passthrough. Intent routing is deterministic first; an
 LLM (if configured) may pick a tool from the allow-list when the router can't,
 and may rephrase the answer — but the rephrased answer is number-grounded
@@ -51,7 +51,7 @@ def parse_window_minutes(q: str, default: int = 60) -> int:
     return int((num or 1) * (1 if unit.startswith("min") else 60 if unit in ("hour", "hr") else 1440))
 
 
-class Copilot:
+class Assistant:
     def __init__(self, engine, provider: LLMProvider | None = None):
         self.engine = engine
         self.provider = provider
@@ -162,7 +162,7 @@ class Copilot:
         return "", {}
 
     def _llm_phrase(self, question: str, draft: str, data: dict) -> str | None:
-        sys = ("You are GPU Sentinel's operator copilot. Rewrite the DRAFT answer to the QUESTION for a data-center "
+        sys = ("You are Ask Sentinel, GPU Sentinel's operator assistant. Rewrite the DRAFT answer to the QUESTION for a data-center "
                "operator. Use only facts and numbers present in DATA or DRAFT. Keep OBSERVED facts, INFERRED causes "
                "(with confidence) and RECOMMENDED steps clearly separated. Never claim certainty. "
                "Reply JSON {\"answer\": markdown string}.")

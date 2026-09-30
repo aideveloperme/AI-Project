@@ -1,6 +1,6 @@
 import pytest
 
-from sentinel.copilot.service import parse_window_minutes
+from sentinel.assistant.service import parse_window_minutes
 
 
 @pytest.fixture
@@ -13,7 +13,7 @@ def degraded(client, operator):
 
 
 def ask(client, headers, q):
-    r = client.post("/api/v1/copilot/ask", headers=headers, json={"question": q})
+    r = client.post("/api/v1/ask", headers=headers, json={"question": q})
     assert r.status_code == 200, r.text
     return r.json()
 

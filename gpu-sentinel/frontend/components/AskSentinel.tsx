@@ -1,6 +1,6 @@
 "use client";
 /* Ask Sentinel: GPU Sentinel's own chat over live telemetry and incidents.
- * Runs entirely on the customer's server (backend /api/v1/copilot/ask); optional local LLM. */
+ * Runs entirely on the customer's server (backend /api/v1/ask); optional local LLM. */
 import { useEffect, useRef, useState } from "react";
 import { post, usePoll } from "@/lib/api";
 import { Markdown } from "@/components/Markdown";
@@ -8,7 +8,7 @@ import { Markdown } from "@/components/Markdown";
 type Msg = { role: "user" | "bot"; text: string; meta?: any };
 
 export function AskSentinel({ compact = false }: { compact?: boolean }) {
-  const { data: sugg } = usePoll<string[]>("/copilot/suggestions", 60000);
+  const { data: sugg } = usePoll<string[]>("/ask/suggestions", 60000);
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
@@ -21,7 +21,7 @@ export function AskSentinel({ compact = false }: { compact?: boolean }) {
     setQ("");
     setBusy(true);
     try {
-      const r = await post<any>("/copilot/ask", { question });
+      const r = await post<any>("/ask", { question });
       setMsgs((m) => [...m, { role: "bot", text: r.answer, meta: r }]);
     } catch (e: any) {
       setMsgs((m) => [...m, { role: "bot", text: `Error: ${e.message}` }]);

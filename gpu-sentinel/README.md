@@ -62,7 +62,7 @@ make test           # backend test suite
 | RCA engine | `backend/sentinel/rca/engine.py` | 12 correlation rules with supporting/contradicting evidence and confidence |
 | Incidents | `backend/sentinel/incidents/service.py` | gating, dedup, escalation, recurrence, auto-resolve, workflow |
 | AI | `backend/sentinel/ai/` | local LLM (Ollama / OpenAI-compatible), grounding validator, offline fallback |
-| Copilot | `backend/sentinel/copilot/` | natural language → 9 allow-listed read-only tools |
+| Ask Sentinel | `backend/sentinel/assistant/` | natural language → 9 allow-listed read-only tools |
 | Security | `backend/sentinel/auth/`, `api/` | JWT, API keys, RBAC, audit log, encrypted credentials, rate limiting |
 | Dashboard | `frontend/` | Next.js static export, 14 pages, dark/light theme, no CDN dependencies |
 | Deploy | `docker-compose.yml`, `deploy/k8s/` | network isolation, non-root containers, NetworkPolicies |

@@ -133,7 +133,7 @@ def test_fleet_endpoints(client, admin, operator):
                  "/api/v1/anomalies", "/api/v1/rca/nodes", "/api/v1/rca/rules", "/api/v1/trends?minutes=60",
                  "/api/v1/nodes/gpu-04/history?metrics=throughput", "/api/v1/nodes/gpu-04/history?metrics=temp_c&gpu=3",
                  "/api/v1/alerts", "/api/v1/settings", "/api/v1/license", "/api/v1/system/info",
-                 "/api/v1/metrics/catalog", "/api/v1/copilot/suggestions", "/api/v1/demo/faults", "/api/v1/demo/scenarios"]:
+                 "/api/v1/metrics/catalog", "/api/v1/ask/suggestions", "/api/v1/demo/faults", "/api/v1/demo/scenarios"]:
         r = client.get(path, headers=h)
         assert r.status_code == 200, (path, r.text)
     ov = client.get("/api/v1/overview", headers=h).json()
