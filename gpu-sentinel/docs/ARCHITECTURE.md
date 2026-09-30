@@ -368,7 +368,7 @@ flowchart TB
 - [x] Notifications: dashboard alerts, HMAC-signed webhook, SMTP email, Slack/Teams/PagerDuty adapters (opt-in)
 - [x] Security: JWT, API keys, RBAC, audit, encrypted credentials, rate limiting, retention, network isolation
 - [x] License model: Ed25519-signed, offline-verifiable, soft enforcement
-- [x] Dashboard: Overview, Cluster Health, GPU Fleet, Node Details, GPU Details, Performance, Anomalies, Incidents (+detail), RCA, Workloads, Network, Historical Trends, AI Copilot, Demo Control, Settings
+- [x] Dashboard: Overview, Cluster Health, GPU Fleet, Node Details, GPU Details, Performance, Anomalies, Incidents (+detail), RCA, Workloads, Network, Historical Trends, Ask Sentinel, Demo Control, Settings
 - [x] Docker/Compose, Kubernetes manifests, CI
 
 **Deliberately not in the MVP:** payment processing, SSO (OIDC/SAML), multi-cluster federation, ML detectors.
@@ -385,7 +385,7 @@ The interfaces for all of these exist.
 | 3 | Anomaly detection | ✅ | 0 false positives on a healthy fleet (tested over 3 seeds, 2 intervals); every fault type detected |
 | 4 | Correlation & RCA | ✅ | correct top hypothesis for all 12 fault types (parametrised test) |
 | 5 | Local LLM | ✅ | Ollama/OpenAI-compatible provider, grounding validator, offline fallback |
-| 6 | AI Copilot | ✅ | the 8 example questions answered from real data |
+| 6 | Ask Sentinel | ✅ | the 8 example questions answered from real data |
 | 7 | Kubernetes/Slurm integration | ◐ | workload model + job analysis via metrics labels ✅; native Slurm REST / K8s API adapters ⏳ |
 | 8 | Auth / RBAC | ✅ | role matrix enforced and tested |
 | 9 | Demo simulator | ✅ | scripted GITEX run in < 2 min per scenario |

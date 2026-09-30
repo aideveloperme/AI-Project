@@ -10,7 +10,7 @@ const NAV: ([string, string, string] | null)[] = [
   ["/performance/", "Performance", "↗"], ["/anomalies/", "Anomalies", "⚠"], ["/incidents/", "Incidents", "✚"],
   ["/rca/", "Root Cause Analysis", "⌖"], null,
   ["/workloads/", "Workloads", "⚙"], ["/network/", "Network", "⇄"], ["/trends/", "Historical Trends", "∿"], null,
-  ["/copilot/", "AI Copilot", "✦"], ["/demo/", "Demo Control", "▶"], ["/settings/", "Settings", "☰"],
+  ["/ask/", "Ask Sentinel", "✦"], ["/demo/", "Demo Control", "▶"], ["/settings/", "Settings", "☰"],
 ];
 
 function useTheme() {

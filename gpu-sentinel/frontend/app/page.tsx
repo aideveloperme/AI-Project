@@ -4,6 +4,7 @@ import { usePoll } from "@/lib/api";
 import { ago, num, pct } from "@/lib/format";
 import { Card, Confidence, Empty, Loading, PageHead, Stat, StatusBadge } from "@/components/ui";
 import { LineChart } from "@/components/charts";
+import { AskSentinel } from "@/components/AskSentinel";
 
 export default function Overview() {
   const { data: d, error } = usePoll<any>("/overview", 10000);
@@ -15,6 +16,10 @@ export default function Overview() {
       <PageHead title="Overview" desc={`Cluster ${d.clusters.join(", ")} · ${d.total_nodes} nodes · updated ${ago(d.timestamp)}`}>
         <StatusBadge status={fleetStatus} label={fleetStatus === "healthy" ? "All systems nominal" : fleetStatus === "warning" ? "Degraded" : "Critical issues"} />
       </PageHead>
+      <Card title="Ask Sentinel" actions={<Link href="/ask/" className="small">Open full chat →</Link>}>
+        <AskSentinel compact />
+      </Card>
+      <div style={{ height: 14 }} />
       <div className="grid g6" style={{ marginBottom: 14 }}>
         <Stat label="Total GPUs" value={d.total_gpus} sub={`${d.total_nodes} nodes`} />
         <Stat label="Healthy GPUs" value={d.healthy_gpus} sub={`${((d.healthy_gpus / d.total_gpus) * 100).toFixed(0)}% of fleet`} />
