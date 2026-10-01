@@ -22,6 +22,11 @@ Description: Classification of traffic signs using CNN models.
 Tech Stack: Python, TensorFlow, Keras, CNNs
 Highlights: Image preprocessing, model training, and evaluation with high accuracy on test dataset.
 
+spark-edge-profiling/
+Description: End-to-end inference profiling & optimisation study on NVIDIA DGX Spark (GB10): FP32 / FP16 / INT8 PTQ / INT8 QAT / mixed precision, Conv+BN+ReLU fusion with per-layer timing, NCHW vs NHWC and tiling, DRAM-traffic measurement with Nsight Compute, model surgery (SiLU→ReLU6, resolution, ViT head pruning) and a roofline-based report.
+Tech Stack: PyTorch, TensorRT, NVIDIA ModelOpt, Triton, Nsight Compute, NVML
+How to run: see spark-edge-profiling/README.md (./docker/run.sh then ./run_all.sh)
+
 How to Run
 Open the notebooks in Google Colab.
 Install required dependencies if prompted (TensorFlow, Keras, OpenCV, NumPy, Pandas, Scikit-learn).

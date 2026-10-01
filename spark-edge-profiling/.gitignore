@@ -1,0 +1,12 @@
+data/
+checkpoints/
+engines/
+results/
+reports/*.png
+reports/REPORT.md
+__pycache__/
+*.pyc
+.pytest_cache/
+*.ncu-rep
+*.nsys-rep
+*.sqlite

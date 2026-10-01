@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sparkprof"
+version = "0.1.0"
+description = "Inference profiling & optimisation toolkit for NVIDIA DGX Spark (GB10)"
+requires-python = ">=3.10"
+
+[tool.setuptools]
+packages = ["sparkprof"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

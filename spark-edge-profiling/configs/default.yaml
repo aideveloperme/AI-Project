@@ -1,0 +1,78 @@
+# ---------------------------------------------------------------------------
+# sparkprof default configuration — NVIDIA DGX Spark (GB10 Grace Blackwell)
+# Every script reads this file; override any key on the command line with
+#   --set key.sub=value   (e.g. --set bench.iters=500)
+# ---------------------------------------------------------------------------
+
+paths:
+  data_root: ./data            # Imagenette is downloaded here
+  ckpt_dir: ./checkpoints      # fine-tuned PyTorch weights
+  engine_dir: ./engines        # ONNX + TensorRT engines
+  results_dir: ./results       # JSON/CSV produced by every experiment
+  report_dir: ./reports        # final Markdown report + figures
+
+data:
+  dataset: imagenette          # imagenette | synthetic  (synthetic = random data, latency-only runs)
+  imagenette_size: 320px       # full | 320px | 160px
+  num_classes: 10
+  resolution: 224
+  batch_size: 64
+  workers: 8
+  calib_images: 512            # images used for INT8 PTQ calibration
+  eval_limit: null             # null = full validation split (3925 images)
+
+train:
+  epochs: 5                    # baseline fine-tune (ImageNet-pretrained -> Imagenette)
+  lr: 0.001
+  weight_decay: 0.05
+  label_smoothing: 0.1
+  amp: true                    # bf16 autocast while training
+  qat_epochs: 2                # INT8 quantization-aware fine-tune
+  qat_lr: 0.0001
+  surgery_epochs: 3            # recovery fine-tune after model surgery
+
+models:
+  # cnn:  Conv+BN+ReLU fusion, precision sweep, layouts
+  # silu: SiLU -> ReLU6 surgery, resolution sweep
+  # vit:  attention-head pruning
+  cnn: resnet50
+  silu: efficientnet_b0
+  vit: vit_b_16
+
+bench:
+  batch_sizes: [1, 8, 32]
+  warmup: 50
+  iters: 300
+  power_sample_hz: 20          # NVML sampling rate while benchmarking
+  power_seconds: 15            # sustained-load duration for power/energy measurement
+
+trt:
+  workspace_gb: 8
+  opt_batch: 8
+  max_batch: 32
+  builder_optimization_level: 3
+  # Blackwell / TRT >= 10.8 tiling optimisation levels to sweep (ignored if unsupported)
+  tiling_levels: [NONE, FAST, MODERATE, FULL]
+
+quant:
+  # layers kept in FP16 for the "mixed" variant: auto-chosen by sensitivity analysis
+  mixed_keep_fp16_topk: 4
+  sensitivity_batches: 4
+
+surgery:
+  resolutions: [128, 160, 192, 224, 256]
+  vit_head_keep_ratios: [1.0, 0.75, 0.5]
+
+# Peak numbers used to draw roofline ceilings. "nominal" values are the public
+# DGX Spark / GB10 figures (dense, no sparsity) and are only a starting point —
+# scripts/01_microbench_peaks.py measures the achievable ceilings on *your*
+# machine and the roofline uses the measured values when they exist.
+hardware:
+  name: NVIDIA DGX Spark (GB10)
+  nominal:
+    dram_bw_gbs: 273           # 128 GB LPDDR5x unified memory, 256-bit
+    fp32_tflops: 31            # CUDA-core FP32
+    fp16_tflops: 125           # tensor-core dense FP16/BF16 (approx.)
+    int8_tops: 250             # tensor-core dense INT8 (approx.)
+    fp8_tflops: 250
+    fp4_tflops: 500            # 1 PFLOP is the sparse FP4 marketing figure

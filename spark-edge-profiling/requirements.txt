@@ -1,0 +1,9 @@
+# Inside nvcr.io/nvidia/pytorch (recommended) torch, torchvision, triton, tensorrt and onnx
+# are pre-installed and must NOT be reinstalled from PyPI. Only these are added:
+nvidia-modelopt[torch]>=0.27
+nvidia-ml-py>=12.0
+onnx>=1.16
+pyyaml>=6.0
+matplotlib>=3.8
+pandas>=2.0
+pytest>=8.0
