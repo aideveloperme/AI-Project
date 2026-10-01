@@ -51,6 +51,14 @@ def parse_window_minutes(q: str, default: int = 60) -> int:
     return int((num or 1) * (1 if unit.startswith("min") else 60 if unit in ("hour", "hr") else 1440))
 
 
+def _basis(s) -> str:
+    if "peer_deviation" in s.methods:
+        return "vs peers"
+    if s.method == "static_threshold":
+        return "vs threshold"
+    return "vs own baseline"
+
+
 class Assistant:
     def __init__(self, engine, provider: LLMProvider | None = None):
         self.engine = engine
@@ -188,7 +196,7 @@ class Assistant:
                                            "status": st.gpu_status.get(s.entity, "warning"), "signals": []})
             r["signals"].append({"metric": s.metric, "label": s.label, "value": round(s.value, 1), "unit": s.unit,
                                  "deviation_pct": round(s.deviation_pct, 1) if s.deviation_pct is not None else None,
-                                 "severity": s.severity})
+                                 "basis": _basis(s), "severity": s.severity})
         return sorted(rows.values(), key=lambda r: (r["status"] != "critical", -len(r["signals"])))
 
     def fleet_summary(self) -> dict:
@@ -217,7 +225,7 @@ class Assistant:
                     "gpus": [], "nodes": []}
         lines = [f"**OBSERVED:** {len(rows)} GPU(s) on {len(abnormal_nodes)} node(s) deviate from their peer baseline:"]
         for r in rows[:15]:
-            sig = "; ".join(f"{x['label']} {x['value']}{x['unit']}" + (f" ({x['deviation_pct']:+.1f}%)" if x['deviation_pct'] is not None else "")
+            sig = "; ".join(f"{x['label']} {x['value']}{x['unit']}" + (f" ({x['deviation_pct']:+.1f}% {x['basis']})" if x['deviation_pct'] is not None else "")
                             for x in r["signals"][:3])
             lines.append(f"- **{r['node']} GPU {r['index']}** [{r['status']}]: {sig}")
         node_only = [n for n in abnormal_nodes if not any(r["node"] == n for r in rows)]
@@ -239,7 +247,7 @@ class Assistant:
                     "gpus": [], "node_signals": []}
         lines = [f"**OBSERVED — {category} anomalies:**"]
         for r in rows[:15]:
-            sig = "; ".join(f"{x['label']} {x['value']}{x['unit']}" + (f" ({x['deviation_pct']:+.1f}% vs peers)" if x['deviation_pct'] is not None else "")
+            sig = "; ".join(f"{x['label']} {x['value']}{x['unit']}" + (f" ({x['deviation_pct']:+.1f}% {x['basis']})" if x['deviation_pct'] is not None else "")
                             for x in r["signals"][:3])
             lines.append(f"- {r['node']} GPU {r['index']}: {sig}")
         for s in node_sigs[:10]:
@@ -262,28 +270,34 @@ class Assistant:
             inc = db.scalars(select(Incident).where(Incident.node == node, Incident.status.in_(ACTIVE_STATUSES))
                              .order_by(Incident.created_at.desc())).first()
             inc_id = inc.id if inc else None
-            exp = inc.ai_explanation if inc else None
         if not ev.signals:
             thr = ev.perf
             extra = (f" Throughput is {thr.value:.0f} vs. peer median {thr.peer.median:.0f} ({thr.deviation_pct:+.1f}%)."
                      if thr else "")
-            return {"answer": f"**OBSERVED:** {node} is currently within its peer baseline — no abnormal signals.{extra}",
+            return {"answer": f"**OBSERVED:** {node} is within its expected range (peers and its own history) — no abnormal signals.{extra}",
                     "node": node, "status": "healthy"}
+        # Headline is always built from the live diagnosis so it can't disagree with the list below.
         lines = []
-        if exp:
-            lines.append(f"**{exp['summary']}**")
-        elif ev.perf is not None and ev.perf.deviation_pct <= -3:
-            lines.append(f"**{node} is performing {abs(ev.perf.deviation_pct):.1f}% below its peer baseline** "
-                         f"({ev.perf.value:.0f} vs. peer median {ev.perf.peer.median:.0f}).")
+        if ev.perf is not None and ev.perf.deviation_pct <= -3:
+            head = (f"{node} is performing {abs(ev.perf.deviation_pct):.1f}% below its peer baseline "
+                    f"({ev.perf.value:.0f} vs. peer median {ev.perf.peer.median:.0f}).")
         else:
-            lines.append(f"**{node} shows abnormal telemetry versus its peers.**")
+            basis = "its peers" if any("peer_deviation" in s.methods for s in ev.signals) else "its own recent history"
+            head = f"{node} shows abnormal telemetry compared with {basis}."
+        if hyps:
+            head += f" Possible contributing factor: {hyps[0].title.lower()} (confidence {hyps[0].confidence_label})."
+        lines.append(f"**{head}**")
         lines.append("\n**OBSERVED:**")
         for s in sorted(ev.signals, key=lambda s: -abs(s.zscore or 0))[:8]:
             where = f"GPU {s.gpu_index}" if s.gpu_index is not None else "node"
             lines.append(f"- {where}: {s.description}")
-        for m in ("gpu_util",):
-            if not any(s.metric == m for s in ev.signals):
-                lines.append("- GPU utilization is normal compared with peers.")
+        if not any(s.metric == "gpu_util" for s in ev.signals):
+            ns = self.engine.state.snapshot.node(node)
+            utils = [g.metrics["gpu_util"] for g in (ns.gpus if ns else []) if "gpu_util" in g.metrics]
+            if utils:
+                has_peers = any("gpu_util" in st.peers.get(g.key, {}) for g in ns.gpus)
+                lines.append(f"- GPU utilization is normal ({sum(utils) / len(utils):.0f}%"
+                             f"{', in line with peers' if has_peers else ''}).")
         if hyps:
             lines.append("\n**INFERRED (possible contributing factors):**")
             for h in hyps[:3]:

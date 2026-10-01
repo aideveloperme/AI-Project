@@ -21,7 +21,7 @@ from typing import Literal
 
 import numpy as np
 
-from sentinel.analytics.history import MetricHistory
+from sentinel.analytics.history import LOAD_SERIES, MetricHistory
 from sentinel.analytics.peers import PeerComparison
 from sentinel.telemetry.catalog import CATALOG, MetricSpec
 from sentinel.telemetry.models import FleetSnapshot
@@ -99,6 +99,27 @@ def _signal(entity: str, spec: MetricSpec, value: float, expected: float | None,
                          method=method, methods=[method], description=description)
 
 
+# Load regimes. A GPU that goes from idle to busy *should* get hotter, draw more power
+# and use more memory; temporal detectors must not compare a working GPU with its own
+# idle history. Samples are split into "idle" (avg node GPU util < IDLE_UTIL) and
+# "active", and temporal baselines only use samples from the current regime.
+IDLE_UTIL = 10.0
+
+
+def regime_mask(ctx: DetectionContext, entity: str, n: int, recent: int) -> np.ndarray | None:
+    """Boolean mask over the last ``n`` samples of an entity's series: True where the
+    node was in the same load regime as now. None if no load signal is available."""
+    node, _ = _entity_meta(entity)
+    load = ctx.history.values(node, LOAD_SERIES)
+    if load.size == 0:
+        return None
+    if load.size < n:  # series started before the load signal: treat missing as unknown
+        load = np.concatenate([np.full(n - load.size, np.nan), load])
+    load = load[-n:]
+    active_now = float(np.nanmean(load[-recent:])) >= IDLE_UTIL
+    return (load >= IDLE_UTIL) if active_now else (load < IDLE_UTIL)
+
+
 class Detector(abc.ABC):
     name: str
 
@@ -172,7 +193,11 @@ class RollingZScoreDetector(Detector):
             v = ctx.history.values(entity, spec.name)
             if v.size < self.min_samples + self.recent:
                 continue
-            base = v[-(self.window + self.recent):-self.recent]
+            mask = regime_mask(ctx, entity, v.size, self.recent)
+            hist = v[:-self.recent] if mask is None else v[:-self.recent][mask[:-self.recent]]
+            base = hist[-self.window:]
+            if base.size < self.min_samples:
+                continue  # not enough history in the current load regime yet
             recent = float(v[-self.recent:].mean())
             mu, sd = float(base.mean()), float(base.std())
             sd = max(sd, spec.peer_abs_floor / 2, abs(mu) * 0.005, 1e-9)
@@ -195,7 +220,7 @@ class HistoricalBaselineDetector(Detector):
         self.recent, self.min_history, self.factor = recent, min_history, factor
         # Long-window medians barely move; recompute every N samples per series.
         self.refresh_every = refresh_every
-        self._cache: dict[tuple[str, str], tuple[int, float]] = {}
+        self._cache: dict[tuple[str, str], tuple[int, bool | None, float]] = {}
         self._tick = 0
 
     def detect(self, ctx: DetectionContext) -> list[AnomalySignal]:
@@ -207,11 +232,17 @@ class HistoricalBaselineDetector(Detector):
             v = ctx.history.values(entity, spec.name)
             if v.size < self.min_history:
                 continue
+            mask = regime_mask(ctx, entity, v.size, self.recent)
+            regime = None if mask is None else bool(mask[-1])
             cached = self._cache.get((entity, spec.name))
-            if cached is None or self._tick - cached[0] >= self.refresh_every:
-                cached = (self._tick, float(np.median(v[:-self.recent])))
+            if cached is None or cached[1] != regime or self._tick - cached[0] >= self.refresh_every:
+                hist = v[:-self.recent] if mask is None else v[:-self.recent][mask[:-self.recent]]
+                if hist.size < self.min_history - self.recent:
+                    self._cache.pop((entity, spec.name), None)
+                    continue  # baseline for this load regime not learned yet
+                cached = (self._tick, regime, float(np.median(hist)))
                 self._cache[(entity, spec.name)] = cached
-            base = cached[1]
+            base = cached[2]
             cur = float(v[-self.recent:].mean())
             if not base:
                 continue
@@ -248,6 +279,9 @@ class RateOfChangeDetector(Detector):
             x, y = t[mask], ctx.history.values(entity, spec.name)[mask]
             if x.size < self.min_samples or x[-1] - x[0] < self.min_span_s:
                 continue
+            mask = regime_mask(ctx, entity, t.size, 3)
+            if mask is not None and not mask[-x.size:].all():
+                continue  # load just started/stopped: temperature/power ramps are expected
             slope = float(np.polyfit((x - x[0]) / 60.0, y, 1)[0])  # units per minute
             change = slope * (x[-1] - x[0]) / 60.0
             direction = "high" if slope > 0 else "low"

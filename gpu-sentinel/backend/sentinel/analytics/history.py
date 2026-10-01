@@ -15,6 +15,8 @@ import numpy as np
 
 from sentinel.telemetry.models import FleetSnapshot
 
+LOAD_SERIES = "_gpu_util_avg"  # internal: average GPU utilization of a node per sample
+
 
 class _Series:
     __slots__ = ("ts", "v", "pos", "maxlen")
@@ -53,6 +55,9 @@ class MetricHistory:
         for n in snap.nodes:
             for k, v in n.metrics.items():
                 self.add(n.node, k, snap.timestamp, v)
+            if n.gpus:  # node load regime signal (see detectors.regime_mask)
+                self.add(n.node, LOAD_SERIES, snap.timestamp,
+                         sum(g.metrics.get("gpu_util", 0.0) for g in n.gpus) / len(n.gpus))
             for g in n.gpus:
                 for k, v in g.metrics.items():
                     self.add(g.key, k, snap.timestamp, v)

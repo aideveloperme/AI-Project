@@ -122,7 +122,7 @@ def template_explanation(inc: dict) -> dict:
         lead = (f"{node} is performing {abs(thr['deviation_pct']):.1f}% below its peer baseline "
                 f"({_fmt(thr.get('value'))} vs. peer median {_fmt(thr.get('peer_median'))} {thr.get('unit', '')}).")
     else:
-        lead = f"{node} shows abnormal telemetry compared with its peers."
+        lead = f"{node} shows abnormal telemetry compared with its peers or its own recent history."
     if top:
         lead += f" Possible contributing factor: {top['title'].lower()} (confidence: {top['confidence_label']})."
 

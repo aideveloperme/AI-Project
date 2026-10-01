@@ -68,7 +68,7 @@ NODE_METRICS: list[MetricSpec] = [
     MetricSpec("load1", "node", "", "Load average (1m)", "cpu", "high_bad", 0.50, 4.0),
     MetricSpec("cpu_freq_mhz", "node", "MHz", "CPU frequency", "cpu", "low_bad", 0.10, 50.0),
     MetricSpec("ctx_switches_k", "node", "k/s", "Context switches", "cpu", "high_bad", 0.60, 10.0),
-    MetricSpec("mem_used_pct", "node", "%", "System memory used", "memory", "high_bad", 0.30, 5.0, warn=92, crit=97),
+    MetricSpec("mem_used_pct", "node", "%", "System memory used", "memory", "high_bad", 0.30, 5.0, warn=92, crit=97, temporal=False),
     MetricSpec("mem_psi_some", "node", "%", "Memory pressure (PSI some)", "memory", "high_bad", 1.0, 5.0, warn=10, crit=30),
     MetricSpec("net_rx_gbps", "node", "Gb/s", "Ethernet RX", "network", "low_bad", 0.35, 1.0),
     MetricSpec("net_tx_gbps", "node", "Gb/s", "Ethernet TX", "network", "low_bad", 0.35, 1.0),

@@ -191,7 +191,7 @@ class IncidentService:
     def _summary(node: str, observed: dict, top: Hypothesis | None) -> str:
         thr = observed.get("throughput")
         s = (f"{node} is performing {abs(thr['deviation_pct']):.1f}% below its peer baseline."
-             if thr and thr["deviation_pct"] <= -3 else f"{node} shows abnormal telemetry versus peers.")
+             if thr and thr["deviation_pct"] <= -3 else f"{node} shows abnormal telemetry versus its peers or its own recent history.")
         if top:
             s += f" Possible contributing factor: {top.title.lower()} (confidence {top.confidence_label})."
         return s
