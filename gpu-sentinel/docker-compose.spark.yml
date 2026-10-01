@@ -1,0 +1,110 @@
+# GPU Sentinel on a single DGX Spark, monitoring the REAL GPU (no simulator).
+#   docker compose -f docker-compose.spark.yml up -d --build   → http://<spark>:8080
+# For the simulated 12-node demo, use docker-compose.yml instead.
+name: gpu-sentinel-spark
+
+services:
+  dcgm-exporter:
+    # Pick the newest arm64-capable tag from NGC: nvcr.io/nvidia/k8s/dcgm-exporter
+    image: ${DCGM_EXPORTER_IMAGE:-nvcr.io/nvidia/k8s/dcgm-exporter:4.2.3-4.1.3-ubuntu22.04}
+    cap_add: [SYS_ADMIN]            # needed for DCGM profiling (DCP) metrics
+    environment:
+      DCGM_EXPORTER_COLLECTORS: /etc/dcgm-exporter/default-counters.csv
+    volumes:
+      # Mounted over the default path: dcgm-exporter falls back to this file anyway.
+      - ./deploy/spark/dcgm-counters.csv:/etc/dcgm-exporter/default-counters.csv:ro
+    deploy:
+      resources:
+        reservations:
+          devices: [{ driver: nvidia, count: all, capabilities: [gpu] }]
+    restart: unless-stopped
+
+  node-exporter:
+    image: prom/node-exporter:v1.8.2
+    command: ["--path.rootfs=/host", "--collector.infiniband"]
+    network_mode: host              # real host NIC counters, listens on :9100
+    pid: host
+    volumes: ["/:/host:ro,rslave"]
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v2.53.2
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.retention.time=7d"]
+    volumes:
+      - ./deploy/spark/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    ports: ["${PROMETHEUS_PORT:-9090}:9090"]   # Prometheus UI, for cross-checking
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    environment:
+      SENTINEL_TELEMETRY_SOURCE: prometheus
+      SENTINEL_PROMETHEUS_URL: http://prometheus:9090
+      SENTINEL_DATABASE_URL: sqlite:////data/sentinel.db
+      SENTINEL_ANALYSIS_INTERVAL_S: "10"
+      SENTINEL_DEMO_MODE: "false"
+      SENTINEL_JWT_SECRET: ${SENTINEL_JWT_SECRET:-change-me-in-production-please-32b+}
+      SENTINEL_BOOTSTRAP_ADMIN_PASSWORD: ${SENTINEL_ADMIN_PASSWORD:-sentinel-admin}
+      SENTINEL_LLM_PROVIDER: ${SENTINEL_LLM_PROVIDER:-auto}
+      SENTINEL_LLM_URL: ${SENTINEL_LLM_URL:-http://ollama:11434}
+      SENTINEL_LLM_MODEL: ${SENTINEL_LLM_MODEL:-llama3.1:8b-instruct-q4_K_M}
+      SENTINEL_CORS_ORIGINS: http://localhost:8080
+    volumes: [sentinel-data:/data]
+    depends_on: [prometheus]
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    ports: ["${SENTINEL_PORT:-8080}:8080"]
+    depends_on: [backend]
+    restart: unless-stopped
+
+  workload:                          # optional: docker compose -f docker-compose.spark.yml --profile workload up -d
+    # NVIDIA's PyTorch container (arm64 + Blackwell). Use the newest tag from NGC if this one is missing.
+    image: ${PYTORCH_IMAGE:-nvcr.io/nvidia/pytorch:25.09-py3}
+    profiles: [workload]
+    command: ["python", "/workloads/train_gpt.py", "--size", "${WORKLOAD_SIZE:-medium}", "--batch", "${WORKLOAD_BATCH:-16}"]
+    environment:
+      SENTINEL_NODE: spark-01
+      SENTINEL_JOB_ID: spark-train-1
+    volumes: ["./workloads:/workloads:ro"]
+    ipc: host
+    ulimits: { memlock: -1, stack: 67108864 }
+    deploy:
+      resources:
+        reservations:
+          devices: [{ driver: nvidia, count: all, capabilities: [gpu] }]
+    restart: unless-stopped
+
+  grafana:                           # optional: docker compose -f docker-compose.spark.yml --profile grafana up -d grafana
+    image: grafana/grafana:11.2.0
+    profiles: [grafana]
+    ports: ["${GRAFANA_PORT:-3000}:3000"]
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+    volumes:
+      - ./deploy/spark/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./deploy/spark/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    depends_on: [prometheus]
+    restart: unless-stopped
+
+  ollama:                            # optional: docker compose -f docker-compose.spark.yml --profile llm up -d
+    image: ollama/ollama:latest
+    profiles: [llm]
+    volumes: [ollama-data:/root/.ollama]
+    deploy:
+      resources:
+        reservations:
+          devices: [{ driver: nvidia, count: all, capabilities: [gpu] }]
+    restart: unless-stopped
+
+volumes:
+  grafana-data:
+  prometheus-data:
+  sentinel-data:
+  ollama-data:

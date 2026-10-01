@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  labels: { app: sentinel-frontend }
+spec:
+  replicas: 2
+  selector: { matchLabels: { app: sentinel-frontend } }
+  template:
+    metadata:
+      labels: { app: sentinel-frontend }
+    spec:
+      automountServiceAccountToken: false
+      securityContext: { runAsNonRoot: true, seccompProfile: { type: RuntimeDefault } }
+      containers:
+        - name: nginx
+          image: gpu-sentinel/frontend
+          ports: [{ containerPort: 8080, name: http }]
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { cpu: 500m, memory: 256Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: [ALL] }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: frontend }
+spec:
+  selector: { app: sentinel-frontend }
+  ports: [{ port: 80, targetPort: http, name: http }]
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: sentinel
+spec:
+  tls: [{ hosts: [sentinel.example.internal], secretName: sentinel-tls }]
+  rules:
+    - host: sentinel.example.internal
+      http:
+        paths:
+          - { path: /, pathType: Prefix, backend: { service: { name: frontend, port: { name: http } } } }
