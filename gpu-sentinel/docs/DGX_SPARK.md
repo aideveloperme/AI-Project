@@ -74,3 +74,22 @@ docker compose -f docker-compose.spark.yml stop workload           # stop it
 Bigger model / batch: `WORKLOAD_SIZE=large WORKLOAD_BATCH=32 docker compose -f docker-compose.spark.yml --profile workload up -d workload`
 (sizes: small, medium, large). If the batch doesn't fit in memory, lower `WORKLOAD_BATCH`.
 If the `nvcr.io/nvidia/pytorch` tag isn't found, set `PYTORCH_IMAGE` to the newest tag listed on NGC.
+
+## Cross-check GPU Sentinel against Grafana / Prometheus / nvidia-smi
+
+Three independent views of the same GPU:
+
+| Source | Path | Shows |
+|---|---|---|
+| `nvidia-smi` | NVML driver → terminal | ground truth, no DCGM/Prometheus involved |
+| Prometheus UI `:9090` / Grafana `:3000` | DCGM exporter → Prometheus → raw PromQL | what the exporters report |
+| GPU Sentinel `:8080` | same Prometheus → Sentinel analytics | what Sentinel shows and concludes |
+
+```bash
+docker compose -f docker-compose.spark.yml up -d prometheus          # publishes :9090
+docker compose -f docker-compose.spark.yml --profile grafana up -d grafana
+# Grafana: http://<spark-ip>:3000  admin / admin → Dashboards → DGX Spark → "raw GPU & workload metrics"
+nvidia-smi --query-gpu=timestamp,utilization.gpu,clocks.sm,temperature.gpu,power.draw --format=csv -l 10
+```
+Values agree within one scrape interval (10 s). GPU Sentinel shows short moving averages, so
+expect small smoothing differences, not offsets.

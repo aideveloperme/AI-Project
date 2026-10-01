@@ -34,6 +34,7 @@ services:
       - ./deploy/spark/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus-data:/prometheus
     extra_hosts: ["host.docker.internal:host-gateway"]
+    ports: ["${PROMETHEUS_PORT:-9090}:9090"]   # Prometheus UI, for cross-checking
     restart: unless-stopped
 
   backend:
@@ -77,6 +78,21 @@ services:
           devices: [{ driver: nvidia, count: all, capabilities: [gpu] }]
     restart: unless-stopped
 
+  grafana:                           # optional: docker compose -f docker-compose.spark.yml --profile grafana up -d grafana
+    image: grafana/grafana:11.2.0
+    profiles: [grafana]
+    ports: ["${GRAFANA_PORT:-3000}:3000"]
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+    volumes:
+      - ./deploy/spark/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./deploy/spark/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    depends_on: [prometheus]
+    restart: unless-stopped
+
   ollama:                            # optional: docker compose -f docker-compose.spark.yml --profile llm up -d
     image: ollama/ollama:latest
     profiles: [llm]
@@ -88,6 +104,7 @@ services:
     restart: unless-stopped
 
 volumes:
+  grafana-data:
   prometheus-data:
   sentinel-data:
   ollama-data:
