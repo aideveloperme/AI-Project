@@ -1,0 +1,44 @@
+[
+  {
+    "trace": "results/simulated/00_baseline/profile/traces/simulated_rank0.1791288174.pt.trace.json.gz",
+    "gpu_kernel_time_ms": 24088.027,
+    "gpu_span_ms": 25120.027,
+    "gpu_busy_frac": 0.959,
+    "by_category_pct": {
+      "gemm": 88.69,
+      "attention": 6.49,
+      "norm_act": 2.89,
+      "sampling": 1.93
+    },
+    "top_kernels": [
+      {
+        "name": "sim_gemm_bf16",
+        "total_ms": 21362.8,
+        "calls": 259,
+        "category": "gemm",
+        "pct": 88.69
+      },
+      {
+        "name": "sim_flash_attn_paged_kv",
+        "total_ms": 1564.206,
+        "calls": 259,
+        "category": "attention",
+        "pct": 6.49
+      },
+      {
+        "name": "sim_rms_norm_kernel",
+        "total_ms": 696.613,
+        "calls": 259,
+        "category": "norm_act",
+        "pct": 2.89
+      },
+      {
+        "name": "sim_topk_sampler",
+        "total_ms": 464.409,
+        "calls": 259,
+        "category": "sampling",
+        "pct": 1.93
+      }
+    ]
+  }
+]

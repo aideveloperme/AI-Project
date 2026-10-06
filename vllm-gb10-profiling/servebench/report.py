@@ -100,7 +100,7 @@ def _plot_lines(
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
-    fig, ax = plt.subplots(figsize=(7.2, 4.2), dpi=130)
+    fig, ax = plt.subplots(figsize=(8.4, 4.2), dpi=130)
     for i, (name, pts) in enumerate(series.items()):
         pts = [(x, y) for x, y in pts if y is not None]
         if not pts:
@@ -117,7 +117,7 @@ def _plot_lines(
         )
     if log_x:
         ax.set_xscale("log", base=2)
-        ax.xaxis.set_major_formatter(matplotlib.ticker.ScalarFormatter())
+        ax.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda v, _: f"{v:g}"))
     ax.set_title(title, loc="left", color=INK, fontsize=11)
     ax.set_xlabel(xlabel, color=MUTED)
     ax.set_ylabel(ylabel, color=MUTED)
@@ -127,7 +127,7 @@ def _plot_lines(
     for s in ("left", "bottom"):
         ax.spines[s].set_color(GRID)
     ax.tick_params(colors=MUTED)
-    ax.legend(frameon=False, fontsize=8)
+    ax.legend(frameon=False, fontsize=8, loc="upper left", bbox_to_anchor=(1.01, 1.0))
     fig.tight_layout()
     path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(path)

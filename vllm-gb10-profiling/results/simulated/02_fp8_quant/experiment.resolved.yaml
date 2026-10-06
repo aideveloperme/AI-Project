@@ -1,0 +1,107 @@
+model: Qwen/Qwen3-8B-FP8
+served_model_name: qwen3-8b
+description: FP8 weights (official Qwen3-8B-FP8 checkpoint) + FP8 KV cache
+changes:
+- model Qwen/Qwen3-8B -> Qwen/Qwen3-8B-FP8
+- --kv-cache-dtype fp8
+docker:
+  image: vllm/vllm-openai:v0.31.0
+  env: {}
+  extra_args: []
+server:
+  max-model-len: 32768
+  gpu-memory-utilization: 0.65
+  max-num-seqs: 128
+  max-num-batched-tokens: 2048
+  enable-prefix-caching: false
+  kv-cache-dtype: fp8
+  enable-auto-tool-choice: true
+  tool-call-parser: hermes
+  enable-prompt-tokens-details: true
+startup_timeout_s: 1800
+slo:
+  ttft_ms: 2000
+  tpot_ms: 150
+_no_thinking: &id001
+  chat_template_kwargs:
+    enable_thinking: false
+workloads:
+- name: chat
+  kind: random
+  input_tokens: 512
+  input_jitter: 0.25
+  output_tokens: 128
+  extra_body: *id001
+  sweep:
+    mode: concurrency
+    levels:
+    - 1
+    - 4
+    - 16
+    - 64
+    requests_per_level: 32
+- name: rag_shared_prefix
+  kind: shared_prefix
+  shared_prefix_tokens: 2048
+  num_prefixes: 4
+  input_tokens: 128
+  output_tokens: 128
+  extra_body: *id001
+  sweep:
+    mode: concurrency
+    levels:
+    - 1
+    - 8
+    - 32
+    requests_per_level: 32
+- name: long_context
+  kind: long_context
+  input_tokens: 12000
+  output_tokens: 64
+  extra_body: *id001
+  sweep:
+    mode: concurrency
+    levels:
+    - 1
+    - 4
+    - 8
+    requests_per_level: 16
+agent:
+- mode: replay
+  sessions: 1
+  episodes_per_session: 5
+  replay_steps: 6
+  system_prompt_tokens: 2000
+  step_output_tokens: 64
+  tool_output_tokens: 300
+  final_output_tokens: 128
+  extra_body: *id001
+- mode: replay
+  sessions: 8
+  episodes_per_session: 3
+  replay_steps: 6
+  system_prompt_tokens: 2000
+  step_output_tokens: 64
+  tool_output_tokens: 300
+  final_output_tokens: 128
+  extra_body: *id001
+- mode: react
+  sessions: 4
+  episodes_per_session: 5
+  max_steps: 6
+  system_prompt_tokens: 2000
+  max_tokens_per_step: 512
+  tool_latency_ms: 50
+  extra_body: *id001
+profile:
+  enabled: true
+  workload: chat
+  concurrency: 8
+  requests: 16
+  profiler_config:
+    torch_profiler_with_stack: false
+    ignore_frontend: true
+    delay_iterations: 20
+    max_iterations: 60
+mock: {}
+name: 02_fp8_quant

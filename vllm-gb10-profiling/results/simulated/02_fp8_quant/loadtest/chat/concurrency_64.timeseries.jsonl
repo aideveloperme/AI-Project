@@ -1,0 +1,14 @@
+{"t_s": 0.023, "running": 0.0, "waiting": 0.0, "kv_cache_usage": 0.0}
+{"t_s": 1.03, "running": 13.0, "waiting": 51.0, "kv_cache_usage": 0.007265}
+{"t_s": 2.035, "running": 23.0, "waiting": 41.0, "kv_cache_usage": 0.012291}
+{"t_s": 3.038, "running": 35.0, "waiting": 29.0, "kv_cache_usage": 0.018991}
+{"t_s": 4.043, "running": 46.0, "waiting": 18.0, "kv_cache_usage": 0.025316}
+{"t_s": 5.048, "running": 55.0, "waiting": 9.0, "kv_cache_usage": 0.029897}
+{"t_s": 6.052, "running": 64.0, "waiting": 0.0, "kv_cache_usage": 0.035556}
+{"t_s": 7.062, "running": 64.0, "waiting": 0.0, "kv_cache_usage": 0.03665}
+{"t_s": 8.065, "running": 64.0, "waiting": 0.0, "kv_cache_usage": 0.037778}
+{"t_s": 9.07, "running": 64.0, "waiting": 0.0, "kv_cache_usage": 0.03894}
+{"t_s": 10.075, "running": 64.0, "waiting": 0.0, "kv_cache_usage": 0.040103}
+{"t_s": 11.079, "running": 64.0, "waiting": 0.0, "kv_cache_usage": 0.041265}
+{"t_s": 12.082, "running": 64.0, "waiting": 0.0, "kv_cache_usage": 0.042427}
+{"t_s": 13.086, "running": 39.0, "waiting": 0.0, "kv_cache_usage": 0.026735}

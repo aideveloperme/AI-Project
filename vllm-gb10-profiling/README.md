@@ -157,6 +157,12 @@ tests/                 unit + end-to-end (HTTP/SSE against the simulator)
   admission, and roofline step timing (bandwidth vs compute). That is enough
   for end-to-end CI and for sanity-checking the direction of each knob. It is
   not a substitute for the GB10 run.
+* **Known simulator limits:** it uses a constant MFU, so it can't show the
+  GEMM-efficiency gain from bigger prefill chunks. That makes `03_batching`
+  look flat or worse in simulation (all sessions' prefills land in one giant
+  step). Its kernel-category split is fixed, and agent task success is
+  meaningless (it doesn't reason). These are exactly the questions the GB10
+  run answers.
 * **Replay agent for comparisons, react agent for quality.** A quantised model
   that takes an extra tool step would otherwise look "slower" for the wrong
   reason. Replay fixes the shape; react catches quality regressions.
