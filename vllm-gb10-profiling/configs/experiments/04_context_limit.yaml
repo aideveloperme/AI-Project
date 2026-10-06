@@ -1,0 +1,6 @@
+extends: base.yaml
+name: 04_context_limit
+description: "Context limit 32k -> 8k (admission control; KV pool size is set by memory, not max-model-len)"
+changes: ["--max-model-len 32768 -> 8192"]
+server:
+  max-model-len: 8192

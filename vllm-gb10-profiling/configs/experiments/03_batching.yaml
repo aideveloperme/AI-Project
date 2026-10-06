@@ -1,0 +1,7 @@
+extends: base.yaml
+name: 03_batching
+description: "Bigger scheduler budget: 8k tokens/step and 256 concurrent sequences"
+changes: ["--max-num-batched-tokens 2048 -> 8192", "--max-num-seqs 128 -> 256"]
+server:
+  max-num-batched-tokens: 8192
+  max-num-seqs: 256

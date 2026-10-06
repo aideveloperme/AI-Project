@@ -1,0 +1,9 @@
+extends: base.yaml
+name: 05_combined
+description: "Recommended config: prefix caching + FP8 weights/KV + 8k step budget"
+changes: ["--enable-prefix-caching", "model Qwen/Qwen3-8B-FP8 + --kv-cache-dtype fp8", "--max-num-batched-tokens 8192"]
+model: Qwen/Qwen3-8B-FP8
+server:
+  enable-prefix-caching: true
+  kv-cache-dtype: fp8
+  max-num-batched-tokens: 8192

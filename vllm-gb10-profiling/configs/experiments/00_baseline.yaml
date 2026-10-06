@@ -1,0 +1,4 @@
+extends: base.yaml
+name: 00_baseline
+description: "BF16 weights, BF16 KV, prefix caching OFF, 2k-token step budget, 32k context"
+changes: []

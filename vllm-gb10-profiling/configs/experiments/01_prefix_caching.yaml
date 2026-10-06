@@ -1,0 +1,6 @@
+extends: base.yaml
+name: 01_prefix_caching
+description: "Baseline + automatic prefix caching"
+changes: ["--enable-prefix-caching"]
+server:
+  enable-prefix-caching: true

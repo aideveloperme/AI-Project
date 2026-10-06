@@ -2,6 +2,11 @@
 
 This repository contains multiple AI and computer vision projects implemented in Python using Google Colab, focusing on deep learning, CNNs, and NLP. Each notebook is self-contained and demonstrates different AI/ML techniques applied to real-world tasks.
 
+vllm-gb10-profiling/ — LLM serving performance on NVIDIA DGX Spark (GB10)
+Description: Serve Qwen3-8B with vLLM, load-test it, profile it, and measure before/after for prefix caching, FP8 quantisation, batching and context limits, plus a tool-calling agent loop for agent latency.
+Tech Stack: vLLM, Docker, Python (asyncio/httpx), Prometheus metrics, PyTorch profiler, Nsight Systems, GitHub Actions
+Highlights: KV-cache and context-length analysis, goodput under SLOs, per-step agent TTFT, Perfetto profile links, CI on a GB10 simulator. See vllm-gb10-profiling/README.md.
+
 Finding_laneLines.ipynb
 Description: Lane detection from road images/videos using computer vision techniques.
 Tech Stack: OpenCV, Python, NumPy, Matplotlib

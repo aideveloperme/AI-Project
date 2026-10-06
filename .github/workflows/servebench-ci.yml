@@ -1,0 +1,39 @@
+name: servebench CI
+
+on:
+  push:
+    paths: ["vllm-gb10-profiling/**", ".github/workflows/servebench-ci.yml"]
+  pull_request:
+    paths: ["vllm-gb10-profiling/**", ".github/workflows/servebench-ci.yml"]
+
+defaults:
+  run:
+    working-directory: vllm-gb10-profiling
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      matrix:
+        python: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: vllm-gb10-profiling/pyproject.toml
+      - run: pip install -e ".[dev]"
+      - name: Lint
+        run: make lint
+      - name: Unit + end-to-end tests (GB10 simulator)
+        run: make test
+      - name: Smoke-run every experiment config through the full pipeline
+        run: make smoke
+      - uses: actions/upload-artifact@v4
+        if: always() && matrix.python == '3.12'
+        with:
+          name: smoke-report
+          path: /tmp/servebench-smoke
+          if-no-files-found: ignore
