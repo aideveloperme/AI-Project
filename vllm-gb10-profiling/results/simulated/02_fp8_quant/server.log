@@ -1,0 +1,4 @@
+$ /usr/bin/python -m servebench.mock Qwen/Qwen3-8B-FP8 --host 0.0.0.0 --port 8103 --served-model-name qwen3-8b --max-model-len 32768 --gpu-memory-utilization 0.65 --max-num-seqs 128 --max-num-batched-tokens 2048 --no-enable-prefix-caching --kv-cache-dtype fp8 --enable-auto-tool-choice --tool-call-parser hermes --enable-prompt-tokens-details --profiler-config '{"torch_profiler_with_stack":false,"ignore_frontend":true,"delay_iterations":20,"max_iterations":60,"profiler":"torch","torch_profiler_dir":"/home/user/AI-Project/vllm-gb10-profiling/results/simulated/02_fp8_quant/profile/traces"}'
+
+[mock] ignoring flags not modelled by the simulator: ['--enable-auto-tool-choice', '--tool-call-parser', 'hermes', '--enable-prompt-tokens-details']
+[mock] SIMULATED GB10: weights=8.2GB kv/token=72KiB kv_capacity=936000 tokens

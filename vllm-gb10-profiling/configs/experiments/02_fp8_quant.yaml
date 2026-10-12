@@ -1,0 +1,7 @@
+extends: base.yaml
+name: 02_fp8_quant
+description: "FP8 weights (official Qwen3-8B-FP8 checkpoint) + FP8 KV cache"
+changes: ["model Qwen/Qwen3-8B -> Qwen/Qwen3-8B-FP8", "--kv-cache-dtype fp8"]
+model: Qwen/Qwen3-8B-FP8
+server:
+  kv-cache-dtype: fp8
