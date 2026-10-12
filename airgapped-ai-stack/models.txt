@@ -1,0 +1,15 @@
+# Ollama models to bundle for the air-gapped Spark (one per line, "#" = comment).
+# Sizes are approximate download sizes. The Spark has 128 GB unified memory.
+
+# Embeddings for RAG (required by Open WebUI documents and rag-api)
+nomic-embed-text
+
+# General chat / reasoning
+gpt-oss:20b
+llama3.1:8b
+
+# Bigger options that fit on a Spark — uncomment if you want them
+# gpt-oss:120b          # ~65 GB, strongest open reasoning model that fits
+# llama3.3:70b          # ~43 GB
+# qwen2.5-coder:32b     # ~20 GB, code assistant
+# gemma3:27b            # ~17 GB, also handles images
