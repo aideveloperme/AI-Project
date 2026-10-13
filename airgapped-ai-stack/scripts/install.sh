@@ -36,11 +36,21 @@ if [[ ! -f .env ]]; then
   chmod 600 .env
 fi
 
+set -a; source .env; set +a
+
+log "Checking ports ${WEBUI_PORT} and ${RAG_API_PORT} are free"
+for port in "$WEBUI_PORT" "$RAG_API_PORT"; do
+  [[ -z $(ss -Hltn "sport = :$port") ]] && continue
+  owner=$(docker ps --filter "publish=$port" --format '{{.Names}}')
+  [[ $owner == airgap-* ]] && continue   # our own stack from an earlier run
+  fail "port $port is already used by ${owner:-a host process (see: sudo ss -ltnp 'sport = :$port')}.
+       Pick free ports in .env (e.g. WEBUI_PORT=3300, RAG_API_PORT=8300) and re-run."
+done
+
 log "Starting stack (nothing will be pulled or built)"
 docker compose up -d --pull never --no-build
 
 log "Waiting for Open WebUI"
-set -a; source .env; set +a
 for _ in $(seq 1 90); do
   curl -fsS "http://${BIND_ADDR}:${WEBUI_PORT}/health" >/dev/null 2>&1 && break
   sleep 2

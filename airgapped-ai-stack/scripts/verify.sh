@@ -25,7 +25,15 @@ docker exec airgap-ollama nvidia-smi -L >/dev/null 2>&1 && ok "GPU visible in ol
 model=$(docker exec airgap-ollama ollama list | awk 'NR>1 && $1 !~ /embed/ {print $1; exit}')
 if [[ -n $model ]]; then
   docker exec airgap-ollama ollama run "$model" "Reply with OK" >/dev/null 2>&1
-  docker exec airgap-ollama ollama ps | grep -q GPU && ok "$model runs on GPU" || bad "$model not on GPU: $(docker exec airgap-ollama ollama ps | tail -1)"
+  if docker exec airgap-ollama ollama ps | grep -q GPU; then
+    ok "$model runs on GPU"
+  else
+    bad "$model not on GPU: $(docker exec airgap-ollama ollama ps | tail -1)"
+    echo "       Ollama's GPU discovery log:"
+    docker logs airgap-ollama 2>&1 | grep -iE 'inference compute|cuda|gpu|vram|library' | tail -15 | sed 's/^/         /'
+    echo "       Other GPU users (they share the Spark's 128 GB):"
+    nvidia-smi --query-compute-apps=pid,process_name,used_memory --format=csv,noheader 2>/dev/null | sed 's/^/         /'
+  fi
 else
   bad "no chat model installed"
 fi
