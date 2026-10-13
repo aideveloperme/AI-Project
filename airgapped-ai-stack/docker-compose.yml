@@ -30,6 +30,13 @@ services:
       OLLAMA_FLASH_ATTENTION: "1"
     volumes:
       - ./data/ollama:/root/.ollama
+    # GB10 shares one memory pool between CPU and GPU, and CUDA pins host memory.
+    # Docker's default 8 MB memlock makes CUDA init fail with "out of memory"
+    # and Ollama silently falls back to CPU. Same settings NVIDIA uses for NGC.
+    ipc: host
+    ulimits:
+      memlock: -1
+      stack: 67108864
     deploy:
       resources:
         reservations:
