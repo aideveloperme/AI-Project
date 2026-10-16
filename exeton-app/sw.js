@@ -1,5 +1,5 @@
 // Offline cache. Bump VERSION whenever you change any app file.
-const VERSION = "exeton-v1";
+const VERSION = "exeton-v2";
 const FILES = ["./", "index.html", "styles.css", "app.js", "products.js", "manifest.webmanifest",
   "icons/icon-192.png", "icons/icon-512.png", "icons/apple-touch-icon.png"];
 

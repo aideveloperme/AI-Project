@@ -172,3 +172,18 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); ou
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 
 .install-tip { background: var(--surface); border: 1px dashed var(--line); border-radius: var(--radius); padding: 12px 14px; font-size: 14px; color: var(--muted); margin-top: 18px; }
+
+/* Catalog extras */
+.brand { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
+.detail .brand { font-size: 12px; margin-bottom: 4px; }
+.card .name { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.chip .count { opacity: .55; font-weight: 400; margin-left: 2px; }
+.rail { display: grid; grid-auto-flow: column; grid-auto-columns: 46%; gap: 12px; overflow-x: auto; margin: 0 -16px 22px; padding: 0 16px 4px; scroll-snap-type: x mandatory; scroll-padding-inline: 16px; scrollbar-width: none; }
+.rail .tag { display: none; }
+.rail::-webkit-scrollbar { display: none; }
+.rail .card { scroll-snap-align: start; }
+@media (min-width: 560px) { .rail { grid-auto-columns: 30%; } }
+.list-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.list-head .section-title { margin: 0; }
+.list-head select { height: 36px; max-width: 48%; padding: 0 10px; font-size: 14px; border-radius: 10px; }
+.more { margin-top: 16px; }
